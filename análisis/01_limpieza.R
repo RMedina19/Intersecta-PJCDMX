@@ -9,11 +9,15 @@
 # 0. Configuración inicial -----------------------------------------------------
 
 # Librerías 
-library(readxl)         # Para lectura de archivos xlsx
-library(dplyr)          # Para limpieza de datos 
+require(pacman)
+p_load(readxl, dplyr)
 
 # Limpiar espacio de trabajo 
 rm(list=ls())
+
+# Establecer directorios
+inp <- "datos_crudos/"
+out <- "datos_limpios/"
 
 
 # 1. Cargar datos --------------------------------------------------------------
@@ -48,10 +52,10 @@ df_sentencias_crudo     <- read_excel("datos_crudos/F227220_081220 INFOMEX.xlsx"
 # Renombrar variables 
 df_asuntos <- df_asuntos_crudo          %>% 
         rename(materia         = "Materia", 
-                id_expediente  = "Indice para agrupación 1\r\n\r\n(Expediente / Carpeta)", 
-                id_persona     = "Indice para agrupación 2\r\n\r\n(Personas)", 
+                indice_exp  = "Indice para agrupación 1\r\n\r\n(Expediente / Carpeta)", 
+                indice_per     = "Indice para agrupación 2\r\n\r\n(Personas)", 
                 año_ingreso    = "Año ingreso", 
-                mes_ingreso    = "Mes ingreso", 
+                month_ingreso    = "month ingreso", 
                 sexo_indiciada = "Sexo de la persona indiciada", 
                 edad_indiciada = "Edad de la persona indiciada",
                 tipo_delictivo = "Tipo delictivo", 
@@ -59,11 +63,11 @@ df_asuntos <- df_asuntos_crudo          %>%
                 consignación   = "Consignacion", 
                 comisión       = "Comisión", 
                 realización    = "Realización", 
-                alcaldía       = "Alcaldía de ocurrencia")
+                alcaldia_ocurrencia       = "alcaldia_ocurrencia de ocurrencia")
 
 df_personas <- df_personas_crudo        %>% 
-        rename(id_expediente   = "Indice para agrupación 1\r\n(Expediente / Carpeta)", 
-                id_persona     = "Indice para agrupación 3\r\n(Persona)", 
+        rename(indice_exp   = "Indice para agrupación 1\r\n(Expediente / Carpeta)", 
+                indice_per     = "Indice para agrupación 3\r\n(Persona)", 
                 sexo_victima   = "Sexo de la persona involucrada como víctima u ofendida", 
                 edad_victima   = "Edad de la persona involucrada como víctima u ofendida", 
                 relación       = "Relación entre la persona involucrada como víctima u ofendida y la persona probable responsable de la comisión del delito")        
@@ -71,10 +75,10 @@ df_personas <- df_personas_crudo        %>%
 
 df_sitjurid <- df_sitjurid_crudo        %>%
         rename(materia         = "Materia", 
-                id_expediente  = "Indice para agrupación 1\r\n\r\n(Expediente / Carpeta)", 
-                id_persona     = "Indice para agrupación 2\r\n\r\n(Persona)", 
+                indice_exp  = "Indice para agrupación 1\r\n\r\n(Expediente / Carpeta)", 
+                indice_per     = "Indice para agrupación 2\r\n\r\n(Persona)", 
                 año_resolucion = "Año resolución",  
-                mes_resolucion = "Mes resolución", 
+                month_resolucion = "month resolución", 
                 sexo_procesada = "Sexo de la persona procesada", 
                 edad_procesada = "Edad de la persona procesada",
                 tipo_delictivo = "Tipo delictivo", 
@@ -82,15 +86,15 @@ df_sitjurid <- df_sitjurid_crudo        %>%
                 consignación   = "Consignacion", 
                 comisión       = "Comisión", 
                 realización    = "Realización", 
-                alcaldía       = "Alcaldía de ocurrencia", 
+                alcaldia_ocurrencia       = "alcaldia_ocurrencia de ocurrencia", 
                 resolución     = "Resolución a la situación jurídica") 
 
 df_alternas <- df_alternas_crudo          %>% 
         rename(materia         = "Materia", 
-                id_expediente  = "Indice para agrupación 1\r\n\r\n(Expediente / Carpeta)", 
-                id_persona     = "Indice para agrupación 2\r\n\r\n(Persona)", 
-                año_audiencia  = "Año audiencia", 
-                mes_audiencia  = "Mes audiencia", 
+                indice_exp  = "Indice para agrupación 1\r\n\r\n(Expediente / Carpeta)", 
+                indice_per     = "Indice para agrupación 2\r\n\r\n(Persona)", 
+                year_audiencia  = "Año audiencia", 
+                month_audiencia  = "month audiencia", 
                 sexo_indiciada = "Sexo de la persona indiciada", 
                 edad_indiciada = "Edad de la persona indiciada",
                 tipo_delictivo = "Tipo delictivo", 
@@ -98,15 +102,15 @@ df_alternas <- df_alternas_crudo          %>%
                 consignación   = "Consignacion", 
                 comisión       = "Comisión", 
                 realización    = "Realización", 
-                alcaldía       = "Alcaldía de ocurrencia", 
+                alcaldia_ocurrencia       = "alcaldia_ocurrencia de ocurrencia", 
                 tipo_solución  = "Tipo de solución alterna o terminación anticipada")
 
 df_cautelares <- df_cautelares_crudo %>% 
         rename(materia         = "Materia", 
-                id_expediente  = "Indice para agrupación 1\r\n\r\n(Expediente / Carpeta)", 
-                id_persona     = "Indice para agrupación 2\r\n\r\n(Persona)", 
+                indice_exp  = "Indice para agrupación 1\r\n\r\n(Expediente / Carpeta)", 
+                indice_per     = "Indice para agrupación 2\r\n\r\n(Persona)", 
                 año_audiancia  = "Año audiencia",  
-                mes_audiancia  = "Mes audiencia", 
+                month_audiencia  = "month audiencia", 
                 sexo_vinculada = "Sexo de la persona vinculada", 
                 edad_vinculada = "Edad de la persona vinculada",
                 tipo_delictivo = "Tipo delictivo", 
@@ -114,15 +118,15 @@ df_cautelares <- df_cautelares_crudo %>%
                 consignación   = "Consignacion", 
                 comisión       = "Comisión", 
                 realización    = "Realización", 
-                alcaldía       = "Alcaldía de ocurrencia", 
+                alcaldia_ocurrencia       = "alcaldia_ocurrencia de ocurrencia", 
                 tipo_medida    = "Tipo de medida cautelar") 
 
 df_sentencias <- df_sentencias_crudo %>% 
         rename(materia         = "Materia", 
-                id_expediente  = "Indice para agrupación 1\r\n\r\n(Expediente / Carpeta)", 
-                id_persona     = "Indice para agrupación 2\r\n\r\n(Persona)", 
+                indice_exp  = "Indice para agrupación 1\r\n\r\n(Expediente / Carpeta)", 
+                indice_per     = "Indice para agrupación 2\r\n\r\n(Persona)", 
                 año_sentencia  = "Año sentencia",  
-                mes_sentencia  = "Mes sentencia", 
+                month_sentencia  = "month sentencia", 
                 sexo_sentenciada = "Sexo", 
                 edad_sentenciada = "Edad",
                 tipo_delictivo = "Tipo delictivo", 
@@ -130,11 +134,11 @@ df_sentencias <- df_sentencias_crudo %>%
                 consignación   = "Consignación", 
                 comisión       = "Comisión", 
                 realización    = "Realización", 
-                alcaldía       = "Alcaldía de ocurrencia del delito", 
+                alcaldia_ocurrencia       = "alcaldia_ocurrencia de ocurrencia del delito", 
                 forma_proceso  = "Forma del proceso", 
                 tipo_sentencia = "Tipo de sentencia", 
                 años_sentencia = "Años de sentencia", 
-                meses_sentencia = "Meses de sentencia", 
+                monthes_sentencia = "monthes de sentencia", 
                 días_sentencia = "Días de sentencia") 
         
 
