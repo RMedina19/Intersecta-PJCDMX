@@ -2,7 +2,7 @@
 # Objetivo:                     Procesar datos de la PJCDMX
 # Encargadas:                   Estefanía Vela y Regina I. Medina
 # Correo:                       rmedina@intersecta.org
-# Fecha de creación:            30 de enero de 2021
+# Fecha de creación:            10 de enero de 2021
 # Última actualización:         20 de enero de 2021
 #------------------------------------------------------------------------------#
 
