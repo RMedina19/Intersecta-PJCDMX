@@ -1,7 +1,13 @@
 ########## Medidas cautelares TSJ CDMX 
 
 rm(list=ls())
-setwd("~")
+# setwd("~")
+
+dir <- paste0(here::here(), "/GitHub/Intersecta-PJCDMX")
+inp <- "datos_crudos/"
+out <- "datos_limpios/"
+
+setwd(dir)
 
 require(pacman)
 p_load(scales, tidyverse, stringi, dplyr, plyr, foreign, readxl, janitor,extrafont,
@@ -9,8 +15,8 @@ p_load(scales, tidyverse, stringi, dplyr, plyr, foreign, readxl, janitor,extrafo
 
 # ------------ Directorios ---------------- #
 
-inp <- "/Users/samnbk/Dropbox/SaM/By Date/marzo 2018/R_Genero/TSJDF/inp"
-out <- "/Users/samnbk/Dropbox/SaM/By Date/marzo 2018/R_Genero/TSJDF/out"
+# inp <- "/Users/samnbk/Dropbox/SaM/By Date/marzo 2018/R_Genero/TSJDF/inp"
+# out <- "/Users/samnbk/Dropbox/SaM/By Date/marzo 2018/R_Genero/TSJDF/out"
 
 ############## Tema para exportar en .png
 
@@ -40,8 +46,8 @@ fill_dos <-  c("#F178B1","#998FC7")
 sentenciados = read.csv(paste(inp, "cautelares.csv", sep="/"))
 sentenciados <- read.csv("datos_crudos/cautelares.csv")
 sentenciados$tot = 1
-
 View(sentenciados)
+
 
 sentenciados = filter(sentenciados, year_audiencia != "2015")
 
@@ -77,10 +83,13 @@ sentenciados$sexuales_3 <- sentenciados$sexuales_2 <- sentenciados$sexuales_1 <-
 
 sentenciados = mutate(sentenciados, otros = ifelse(homicidio != 1 & salud != 1 & robo != 1 & familiar != 1 & lesiones != 1 & encubrimiento != 1 &
                                                      extorsion != 1 & objetos != 1 & secuestro != 1 & sexuales !=1, 1, 0))
+
 # Línea añadida por Regina
 sentenciados <- rename(sentenciados, numero = "ï..numero")
+View(sentenciados)
 
 autofinal = select(sentenciados, numero, homicidio, salud, robo, familiar, lesiones, encubrimiento, extorsion, objetos, secuestro, sexuales, otros)
+View(autofinal)
 
 autofinal = ddply(autofinal,"numero",numcolwise(sum))
 

@@ -10,42 +10,44 @@
 
 # Librerías 
 require(pacman)
-p_load(readxl, tidyverse, dplyr)
+p_load(readxl, tidyverse, dplyr, here)
 
 # Limpiar espacio de trabajo 
 rm(list=ls())
 
 # Establecer directorios
+dir <- paste0(here::here(), "/GitHub/Intersecta-PJCDMX")
 inp <- "datos_crudos/"
 out <- "datos_limpios/"
 
+setwd(dir)
 
 # 1. Cargar datos --------------------------------------------------------------
 
 # Sobre delitos cometidos en la Ciudad de México entre mayo-2011 y sep-2020
 # Información de los asuntos ingresados por los diversos delitos
-df_asuntos_crudo        <- read_excel(paste0(inp, "F227220_081220 INFOMEX.xlsx"), 
-                               skip = 8, sheet = "ingresados")
+df_asuntos_crudo       <- read_excel(paste0(inp, "F227220_081220 INFOMEX.xlsx"), 
+                                                skip = 8, sheet = "ingresados")
 
 # Información de las personas involucradas como víctimas u ofendidas 
-df_personas_crudo       <- read_excel(paste0(inp, "F227220_081220 INFOMEX.xlsx"), 
-                               skip = 8, sheet = "victOfend")
+df_personas_crudo      <- read_excel(paste0(inp, "F227220_081220 INFOMEX.xlsx"), 
+                                                 skip = 8, sheet = "victOfend")
 
 # Información de los asuntos con resolución del auto de plazo constitucional
-df_sitjurid_crudo       <- read_excel(paste0(inp, "F227220_081220 INFOMEX.xlsx"), 
-                               skip = 8, sheet = "situaJurid")  
+df_sitjurid_crudo      <- read_excel(paste0(inp, "F227220_081220 INFOMEX.xlsx"), 
+                                                skip = 8, sheet = "situaJurid")  
 
 # Información de soluciones alternas o terminaciones anticipadas
-df_alternas_crudo       <- read_excel(paste0(inp, "F227220_081220 INFOMEX.xlsx"), 
-                               skip = 8, sheet = "solAlternasTermAnticip")
+df_alternas_crudo      <- read_excel(paste0(inp, "F227220_081220 INFOMEX.xlsx"), 
+                                    skip = 8, sheet = "solAlternasTermAnticip")
 
 # Información de la medida cautelar de prisión preventiva
-df_cautelares_crudo     <- read_excel(paste0(inp, "F227220_081220 INFOMEX.xlsx"), 
-                               skip = 8, sheet = "medCautelares")
+df_cautelares_crudo    <- read_excel(paste0(inp, "F227220_081220 INFOMEX.xlsx"), 
+                                             skip = 8, sheet = "medCautelares")
 
 # Información de las sentencias emitidas en primera instancia 
-df_sentencias_crudo     <- read_excel(paste0(inp, "F227220_081220 INFOMEX.xlsx"), 
-                               skip = 7, sheet = "sentencias")
+df_sentencias_crudo    <- read_excel(paste0(inp, "F227220_081220 INFOMEX.xlsx"), 
+                                                skip = 7, sheet = "sentencias")
 
         
 # 2. Limpiar datos -------------------------------------------------------------
@@ -119,7 +121,7 @@ df_cautelares <- df_cautelares_crudo %>%
                 comision       = "Comisión", 
                 realizacion    = "Realización", 
                 alcaldia_ocurr = "Alcaldía de ocurrencia", 
-                tipo_medida    = "Tipo de medida cautelar") 
+                medida    = "Tipo de medida cautelar") 
 
 df_sentencias <- df_sentencias_crudo %>% 
         rename(materia         = "Materia", 
@@ -225,22 +227,22 @@ df_freq2 <- as.data.frame(table(df_freq)) %>%
 
 # 2.4 Crear nuevas variables ---------------------------------------------------
 
-
-df_cautelares_limpio <- df_cautelares %>% 
-        filter(year_audiencia != "2015") %>% # Filtrar 2015 
+# Crear variables binarias para los delitos
+df_cautelares_renombrado1 <- df_cautelares                              %>% 
+        filter(year_audiencia != "2015")                                %>% # Filtrar 2015 
         # Unificar categorías de homicidio y feminicidio en 1 
         mutate(homicidio_1 = as.numeric(str_detect(delito, "Homicidio")), 
                homicidio_2 = as.numeric(str_detect(delito, "Feminicidio")), 
-               homicidio   = homicidio_1 + homicidio_2) %>% 
+               homicidio   = homicidio_1 + homicidio_2)                 %>% 
         # Unificar categorías para secuestros 
         mutate(secuestro_1 = as.numeric(str_detect(delito, "Secuestro")), 
                secuestro_2 = as.numeric(str_detect(delito, "Privación de la libertad")), 
-               secuestro   = secuestro_1 + secuestro_2) %>% 
+               secuestro   = secuestro_1 + secuestro_2)                 %>% 
         # Unificar categorías para delitos sexuales
         mutate(sexuales_1  = as.numeric(str_detect(delito, "Abuso sexual")), 
                sexuales_2  = as.numeric(str_detect(delito, "Violacion")), 
                sexuales_3  = as.numeric(str_detect(delito, "Hostigamiento")), 
-               sexuales    = sexuales_1 + sexuales_2 + sexuales_3) %>% 
+               sexuales    = sexuales_1 + sexuales_2 + sexuales_3)      %>% 
         # Crear variables dummies para otros delitos
         mutate(salud       = as.numeric(str_detect(delito, "salud")),
                robo        = as.numeric(str_detect(delito, "Robo")), 
@@ -257,6 +259,39 @@ df_cautelares_limpio <- df_cautelares %>%
         # Retirar variables innecesarias 
         dplyr::select(-c(homicidio_1, homicidio_2, secuestro_1, secuestro_2,
                                         sexuales_1, sexuales_2, sexuales_3))         
+
+# Renombrar medidas cautelares 
+df_cautelares_renombrado2 <- df_cautelares_renombrado1 %>% 
+        mutate(medida = case_when(
+               medida == "El embargo de bienes;" ~ "Embargo", 
+               medida == "El resguardo en su propio domicilio con las modalidades que el juez disponga" ~ "Resguardo en domicilio", 
+               medida == "El sometimiento al cuidado o vigilancia de una persona o institución determinada o internamiento a institución determinada;" ~ "Vigilancia o internamiento", 
+               medida == "La colocación de localizadores electrónicos" ~ "Localizadores electrónicos", 
+               medida == "La exhibición de una garantía económica;" ~ "Garantía económica", 
+               medida == "La inmovilización de cuentas y demás valores que se encuentren dentro del sistema financiero;" ~ "Inmovilización de cuentas", 
+               medida == "La presentación periódica ante el juez o ante autoridad distinta que aquél designe;" ~ "Presentación periódica", 
+               medida == "La prohibición de concurrir a determinadas reuniones o acercarse o ciertos lugares;" ~ "Prohibición de ir a lugares", 
+               medida == "La prohibición de convivir, acercarse o comunicarse con determinadas personas, con las víctimas u ofendidos o testigos, siempre que no se afecte el derecho de defensa" ~ "Prohibición de comunicarse con personas", 
+               medida == "La prohibición de salir sin autorización del país, de la localidad en la cual reside o del ámbito territorial que fije el juez;" ~ "Prohibición de salir de un lugar", 
+               medida == "La separación inmediata del domicilio;" ~ "Separación del domicilio", 
+               medida == "La suspensión temporal en el ejercicio de una determinada actividad profesional o laboral" ~ "Suspensión laboral",
+               medida == "La suspensión temporal en el ejercicio del cargo cuando se le atribuye un delito cometido por servidores públicos" ~ "Suspensión laboral",
+               medida == "Prisión Preventiva" ~ "Prisión preventiva"))
+
+# Crear nueva variable con nombres cortos de los delitos                        
+df_cautelares_delitos <- df_cautelares_renombrado2 %>% 
+        mutate(delitos_cortos = case_when(homicidio == 1 ~ "Homicidio",
+                                          salud     == 1 ~ "Delitos contra la salud",
+                                          robo      == 1 ~ "Robo",
+                                          familiar  == 1 ~ "Violencia familiar",
+                                          lesiones  == 1 ~ "Lesiones",
+                                          encubrimiento == 1 ~ "Encubrimiento",
+                                          extorsion == 1 ~ "Extorsión",
+                                          objetos   == 1 ~ "Portación de objetos aptos para agredir",
+                                          secuestro == 1 ~ "Secuestro",
+                                          sexuales  == 1 ~ "Delitos sexuales",
+                                          otros     == 1 ~ "Otros delitos"))
+
 
 # 3. Unificar bases ------------------------------------------------------------
 # Unir base de asuntos ingresados con datos de personas ofendidas
@@ -283,7 +318,7 @@ sum(is.na(df_completa$id_per_agresora))
 
 
 
-# 4. Nuevas variables indicadoras del estatus jurídico -------------------------
+# 4. Guardar bases limpias -----------------------------------------------------
 
 
 # Fin del código #
