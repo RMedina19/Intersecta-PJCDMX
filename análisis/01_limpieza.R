@@ -3,7 +3,7 @@
 # Encargada:                    Regina Isabel Medina Rosales
 # Correo:                       rmedina@intersecta.org
 # Fecha de creación:            14 de enero de 2021
-# Última actualización:         20 de enero de 2021
+# Última actualización:         23 de enero de 2021
 #------------------------------------------------------------------------------#
 
 # 0. Configuración inicial -----------------------------------------------------
@@ -319,8 +319,12 @@ sum(is.na(df_completa$id_per_agresora))
 
 
 # 4. Guardar bases limpias -----------------------------------------------------
+# Renombrar bases con nombres definitivos 
+df_cautelares <- df_cautelares_delitos
+
+save(df_cautelares, file = paste0(out, "df_cautelares.RData"))
+
+
 
 
 # Fin del código #
-
-        
