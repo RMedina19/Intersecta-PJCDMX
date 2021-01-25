@@ -276,7 +276,7 @@ df_asuntos_final <- df_asuntos_renombrado1 %>%
                 otros     == 1 ~ "Otros delitos")) %>% 
         # Renombrar variable de sexo 
         mutate(sexo_indiciada = case_when(sexo_indiciada == "Femenino" ~ "Mujeres", 
-                sexo_indiciada == "Masculino" ~ "Hobres", 
+                sexo_indiciada == "Masculino" ~ "Hombres", 
                 sexo_indiciada == "No especificado" ~ "No especificado" ))
 
 
@@ -332,7 +332,7 @@ df_sitjurid_final <- df_sitjurid_renombrado2 %>%
                 otros     == 1 ~ "Otros delitos")) %>% 
         # Renombrar variable de sexo 
         mutate(sexo_procesada = case_when(sexo_procesada == "Femenino" ~ "Mujeres", 
-                sexo_procesada == "Masculino" ~ "Hobres", 
+                sexo_procesada == "Masculino" ~ "Hombres", 
                 sexo_procesada == "No especificado" ~ "No especificado" ))
 
 
@@ -389,7 +389,7 @@ df_alternas_final <- df_alternas_renombrado2 %>%
                 otros     == 1 ~ "Otros delitos")) %>% 
         # Renombrar variable de sexo 
         mutate(sexo_indiciada = case_when(sexo_indiciada == "Femenino" ~ "Mujeres", 
-                sexo_indiciada == "Masculino" ~ "Hobres", 
+                sexo_indiciada == "Masculino" ~ "Hombres", 
                 sexo_indiciada == "No especificado" ~ "No especificado" ))
 
 
@@ -459,7 +459,7 @@ df_cautelares_final <- df_cautelares_renombrado2 %>%
                sexuales  == 1 ~ "Delitos sexuales",
                otros     == 1 ~ "Otros delitos"))  %>% 
         mutate(sexo_vinculada = case_when(sexo_vinculada == "Femenino" ~ "Mujeres", 
-               sexo_vinculada == "Masculino" ~ "Hobres", 
+               sexo_vinculada == "Masculino" ~ "Hombres", 
                sexo_vinculada == "No especificado" ~ "No especificado"))
 
 # 2.4.5 Sentencias -------------------------------------------------------------
@@ -517,7 +517,7 @@ df_sentencias_final <- df_sentencias_renombrado2 %>%
                 otros     == 1 ~ "Otros delitos")) %>% 
         # Renombrar variable de sexo 
         mutate(sexo_sentenciada = case_when(sexo_sentenciada == "Femenino" ~ "Mujeres", 
-               sexo_sentenciada == "Masculino" ~ "Hobres", 
+               sexo_sentenciada == "Masculino" ~ "Hombres", 
                sexo_sentenciada == "No especificado" ~ "No especificado" ))
 
 
@@ -548,6 +548,7 @@ sum(is.na(df_completa$id_per_agresora))
 # 4. Guardar bases limpias -----------------------------------------------------
 # Renombrar bases con nombres definitivos 
 df_asuntos_ingresados   <- df_asuntos_final
+df_personas_agredidas   <- df_personas
 df_situacion_juridica   <- df_sitjurid_final
 df_soluciones_alternas  <- df_alternas_final
 df_medidas_cautelares   <- df_cautelares_final
@@ -555,6 +556,7 @@ df_sentencias           <- df_sentencias_final
 
 # Guardar bases en formato RData
 save(df_asuntos_ingresados, file = paste0(out, "df_asuntos_ingresados.RData"))
+save(df_personas_agredidas, file = paste0(out, "df_personas_agredidas.RData"))
 save(df_situacion_juridica, file = paste0(out, "df_situacion_juridica.RData"))
 save(df_soluciones_alternas, file = paste0(out, "df_soluciones_alternas.RData"))
 save(df_medidas_cautelares, file = paste0(out, "df_medidas_cautelares.RData"))

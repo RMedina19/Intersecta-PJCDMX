@@ -19,11 +19,23 @@ p_load(scales, tidyverse, stringi, dplyr, plyr, foreign, readxl, janitor,
 rm(list=ls())
 
 # Establecer directorios 
-inp <- "datos_limpios/"
-out <- "figuras/"
+inp             <- "datos_limpios/"
+out             <- "figuras/"
+asuntos         <- "asuntos_ingresados/"
+personas        <- "personas_agredidas/"
+sitjur          <- "situacion_juridica/"
+alternas        <- "soluciones_alternas/"
+medidas         <- "medidas_cautelares/"
+sentencias      <- "sentencias/"
+
 
 # 1. Cargar datos --------------------------------------------------------------
+load(paste0(inp, "df_asuntos_ingresados.RData"))
+load(paste0(inp, "df_personas_agredidas.RData"))
+load(paste0(inp, "df_situacion_juridica.RData"))
+load(paste0(inp, "df_soluciones_alternas.RData"))
 load(paste0(inp, "df_medidas_cautelares.RData"))
+load(paste0(inp, "df_sentencias.RData"))
 
 # 2. Configuración del tema para visualización ---------------------------------
 
@@ -73,8 +85,9 @@ fill_dos         <-  c("#F178B1","#998FC7")
 
 
 # 3. Preparación de datos para visualización -----------------------------------
+# 3.1 Medidas cautelares -------------------------------------------------------
 # Uso de prisión preventiva desagregado por delito y comisión 
-df_prisprev <- df_cautelares                            %>% 
+df_prisprev <- df_medidas_cautelares                            %>% 
         group_by(medida, delitos_cortos, comision)      %>% 
         summarize(total = n())                          %>% 
         ungroup()                                       %>% 
@@ -86,7 +99,7 @@ df_prisprev <- df_cautelares                            %>%
 # View(df_prisprev)
 
 # Delitos por forma de comisión 
-df_delito <- df_cautelares                              %>% 
+df_delito <- df_medidas_cautelares                              %>% 
         group_by(delitos_cortos, comision)              %>% 
         summarize(total = n())                          %>% 
         ungroup()                                       %>% 
@@ -96,7 +109,7 @@ df_delito <- df_cautelares                              %>%
 # View(df_delito)
 
 # Delitos por año 
-df_year_delito <- df_cautelares                         %>% 
+df_year_delito <- df_medidas_cautelares                         %>% 
         group_by(year_audiencia, delitos_cortos)        %>% 
         summarize(total = n())                          %>% 
         ungroup()                                       %>% 
@@ -107,7 +120,7 @@ df_year_delito <- df_cautelares                         %>%
 # View(df_year)
 
 # Distribución de medidas cautelares según delito 
-df_medidas_delito <- df_cautelares                      %>% 
+df_medidas_delito <- df_medidas_cautelares                      %>% 
         group_by(delitos_cortos, year_audiencia, medida) %>% 
         summarize(total = n())                          %>% 
         ungroup()                                       %>% 
@@ -118,8 +131,9 @@ df_medidas_delito <- df_cautelares                      %>%
 # View(df_medidas_delito)
 
 
-#### FALTA AGREGAR POR SEXO ####
-df_medida_sexo <- df_cautelares                         %>% 
+# Medida cautelar por sexo 
+df_medida_sexo <- df_medidas_cautelares                         %>% 
+        rename(sexo = sexo_vinculada) %>% 
         group_by(sexo, year_audiencia, medida)          %>% 
         filter(sexo != "No especificado")               %>% 
         summarize(total = n())                          %>% 
@@ -129,7 +143,8 @@ df_medida_sexo <- df_cautelares                         %>%
                 porcent = round(total / denomin * 100, 1))
 
 # Prisión preventiva por delito y por sexo 
-porano <- df_cautelares                                 %>% 
+df_medida_delito_sexo <- df_medidas_cautelares                                 %>% 
+        rename(sexo = sexo_vinculada) %>% 
         group_by(delitos_cortos, year_audiencia, medida, sexo) %>% 
         summarize(total = n())                          %>% 
         ungroup()                                       %>% 
@@ -140,7 +155,7 @@ porano <- df_cautelares                                 %>%
                 sexo != "No especificado")
 
 # Medidas cautelares por año
-df_year_medidas <- df_cautelares                        %>% 
+df_year_medidas <- df_medidas_cautelares                        %>% 
         group_by(year_audiencia, medida)                %>% 
         summarize(total = n())                          %>% 
         ungroup()                                       %>% 
@@ -148,8 +163,11 @@ df_year_medidas <- df_cautelares                        %>%
         mutate(denomin = sum(total, na.rm = T),
                 porcent = round(total / denomin * 100, 1))
 
+
+
+# 3.6 Sentencias ---------------------------------------------------------------
 # Sentido de la sentencia por sexo
-df_sentencia_sexo <- df_cautelares                      %>% 
+df_sentencia_sexo <- df_medidas_cautelares                      %>% 
         group_by(anio_ing, sentencia, sexo)             %>% 
         filter(sexo != "No especificado")               %>% 
         summarize(total = n())                          %>% 
@@ -159,7 +177,7 @@ df_sentencia_sexo <- df_cautelares                      %>%
                 porcent = round(total / denomin * 100, 1))
 
 # Delitos de las personas condenadas
-df_delitos_condenadas <- df_cautelares                  %>% 
+df_delitos_condenadas <- df_medidas_cautelares                  %>% 
         group_by(anio_ing, sentencia, delitos_cortos, sexo) %>% 
         filter(sexo != "No especificado")               %>% 
         filter(sentencia == "Condenatoria")             %>% 
@@ -185,7 +203,13 @@ df_condenadas_sexo  <- sentenciados                     %>%
 # Establecer vectores de texto 
 leyenda <- "\n Fuente: Respuesta del TSJCDMX a solicitud de acceso a la información pública. "
 
-# 4.1 Prisión preventiva por delito y comisión ---------------------------------
+
+# 4.1 Asuntos ingresados -------------------------------------------------------
+# 4.2 Personas agredidas -------------------------------------------------------
+# 4.3 Situación jurídica -------------------------------------------------------
+# 4.4 Soluciones alternas ------------------------------------------------------
+# 4.5 Medidas cautelares -------------------------------------------------------
+# 4.5.1 Prisión preventiva por delito y comisión ---------------------------------
 ggplot(df_prisprev, 
         aes(x = comision, y = porcent, fill = medida))  +
         geom_bar(stat = "identity", position = "stack") +
@@ -204,10 +228,10 @@ ggplot(df_prisprev,
         coord_flip(ylim=c(0,100))   +
         theme(legend.position = "top")
 
-ggsave(paste0(out, "g_delitos_medidas_culposos.png"), width = 18, height = 16)
+ggsave(paste0(out, medidas, "g_delitos_medidas_culposos.png"), width = 18, height = 16)
 
 
-# 4.2 Delitos por comisión -----------------------------------------------------
+# 4.5.2 Delitos por comisión -----------------------------------------------------
 ggplot(df_delito, aes(x = delitos_cortos, y=porcent, fill=comision)) +
         geom_bar(stat="identity", position="stack") +
         scale_fill_manual(values=c("#F178B1","#998FC7"))+
@@ -220,10 +244,11 @@ ggplot(df_delito, aes(x = delitos_cortos, y=porcent, fill=comision)) +
         tema +
         coord_flip(ylim=c(0,100))+
         theme(legend.position = "top")
-ggsave(paste(out, "g_delitos_forma_comisión.png", sep = "/"), width = 18, height = 16)
+
+ggsave(paste0(out, medidas, "g_delitos_forma_comisión.png"), width = 18, height = 16)
 
 
-# 4.3 Delitos por año ----------------------------------------------------------
+# 4.5.3 Delitos por año ----------------------------------------------------------
 ggplot(df_year_delito) +
         geom_area(aes(x = as.integer(year_audiencia), y = porcent, fill=delitos_cortos), size=2.5) +
         labs(title = "Delitos de las personas sentenciadas en la CDMX", subtitle = "Por año \n", y = "\n Porcentaje \n", x="",
@@ -236,9 +261,10 @@ ggplot(df_year_delito) +
         theme(axis.text.x = element_text(angle = 0, hjust = .5, vjust = .5)) +
         coord_cartesian(ylim = c(0, 100))+
         theme(legend.position = "top") 
-ggsave(paste(out, "g_delitos_año.png", sep = "/"), width = 20, height = 16)
 
-# 4.4 Medidas cautelares por delito --------------------------------------------
+ggsave(paste0(out, medidas, "g_delitos_año.png"), width = 20, height = 16)
+
+# 4.5.4 Medidas cautelares por delito --------------------------------------------
 ggplot(df_medidas_delito) +
         geom_area(aes(x = as.integer(year_audiencia), y = porcent, fill=medida), size=2.5) +
         labs(title = "Delitos de las personas sentenciadas en la CDMX", subtitle = "Por año \n", y = "\n Porcentaje \n", x="",
@@ -255,10 +281,11 @@ ggplot(df_medidas_delito) +
         theme(legend.position = "right", 
                 legend.key.size = unit(.5, "cm"),
                 legend.key.width = unit(.5,"cm")) 
-ggsave(paste(out, "g_delitos_medidas.png", sep = "/"), width = 20, height = 16)
+
+ggsave(paste0(out, medidas, "g_delitos_medidas.png"), width = 20, height = 16)
 
 
-# 4.5 Medida cautelar por sexo -------------------------------------------------
+# 4.5.5 Medida cautelar por sexo -------------------------------------------------
 ggplot(df_medida_sexo) +
         geom_area(aes(x = as.integer(year_audiencia), y = porcent, fill=medida), size=2.5) +
         labs(title = "Medidas cautelares dictadas en la CDMX", subtitle = "Por año, por sexo \n", y = "\n Porcentaje \n", x="",
@@ -275,11 +302,11 @@ ggplot(df_medida_sexo) +
         theme(legend.position = "right", 
                 legend.key.size = unit(.5, "cm"),
                 legend.key.width = unit(.5,"cm")) 
-ggsave(paste(out, "1 MEDIDAS X sexo.png", sep = "/"), width = 20, height = 16)
+ggsave(paste0(out, medidas, "g_medida_sexo.png"), width = 20, height = 16)
 
 
-# 4.6 Prisión preventiva por delito y por sexo ---------------------------------
-ggplot(porano) +
+# 4.5.6 Prisión preventiva por delito y por sexo ---------------------------------
+ggplot(df_medida_delito_sexo) +
         geom_area(aes(x = as.integer(year_audiencia), y = porcent, fill=delitos_cortos), size=2.5) +
         labs(title = "Delitos que tuvieron prisión preventiva en la CDMX", subtitle = "Por año, por sexo \n", y = "\n Porcentaje \n", x="",
                 caption = "\n Fuente: Respuesta del TSJCDMX a solicitud de acceso a la información pública. \n", 
@@ -295,9 +322,9 @@ ggplot(porano) +
         theme(legend.position = "right", 
                 legend.key.size = unit(.5, "cm"),
                 legend.key.width = unit(.5,"cm")) 
-ggsave(paste(out, "1 PP X DELITOS x sesxo.png", sep = "/"), width = 20, height = 16)
+ggsave(paste0(out, medidas, "g_medidas_delito_sexo.png"), width = 20, height = 16)
 
-# 4.7 Medidas cautelares por año -----------------------------------------------
+# 4.5.7 Medidas cautelares por año -----------------------------------------------
 ggplot(df_year_medidas) +
         geom_area(aes(x = as.integer(year_audiencia), y = porcent, fill=medida), size=2.5) +
         labs(title = "Medidas cautelares dictadas por el Tribunal Superior de Justicia de la CDMX", subtitle = "Por año \n", y = "\n Porcentaje \n", x="",
@@ -313,10 +340,15 @@ ggplot(df_year_medidas) +
         theme(legend.position = "right", 
                 legend.key.size = unit(.5, "cm"),
                 legend.key.width = unit(.5,"cm")) 
-ggsave(paste(out, "g_medidas_año.png", sep = "/"), width = 20, height = 16)
+
+ggsave(paste(out, medidas, "g_medidas_año.png", sep = "/"), width = 20, height = 16)
 
 
-# 4.9 Sentido de la sentencia por sexo -----------------------------------------
+
+
+# 4.6 Sentencias ---------------------------------------------------------------
+
+# 4.6.1 Sentido de la sentencia por sexo ---------------------------------------
 ggplot(df_sentencia_sexo) +
         geom_area(aes(x = as.integer(anio_ing), y = porcent, fill=sentencia), size=2.5) +
         labs(title = "Sentido de la sentencia", subtitle = "Por año y sexo de la persona sentenciada \n", y = "\n Porcentaje \n", x="",
@@ -332,7 +364,7 @@ ggplot(df_sentencia_sexo) +
         theme(legend.position = "right") 
 ggsave(paste(out, "1 sentido sexo.png", sep = "/"), width = 20, height = 16)
 
-# 4.10 Delitos de las personas condenadas --------------------------------------
+# 4.6.2 Delitos de las personas condenadas -------------------------------------
 ggplot(df_delitos_condenadas) +
         geom_area(aes(x = as.integer(anio_ing), y = porcent, fill=delitos_cortos), size=2.5) +
         labs(title = "Delitos de las personas condenadas", subtitle = "Por año y sexo de la persona condenada \n", y = "\n Porcentaje \n", x="",
@@ -348,7 +380,7 @@ ggplot(df_delitos_condenadas) +
         theme(legend.position = "right") 
 ggsave(paste(out, "1 condena sexo.png", sep = "/"), width = 20, height = 16)
 
-# 4.11 Personas condenadas por sexo --------------------------------------------
+# 4.6.3 Personas condenadas por sexo -------------------------------------------
 ggplot(porano) +
         geom_area(aes(x = as.integer(anio_ing), y = porcent, fill=sexo), size=2.5) +
         labs(title = "Sexo de las personas condenadas en la CDMX", subtitle = "Por año y por delito \n", y = "\n Porcentaje \n", x="",
