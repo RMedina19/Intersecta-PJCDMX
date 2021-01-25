@@ -3,7 +3,7 @@
 # Encargada:                    Regina Isabel Medina Rosales
 # Correo:                       rmedina@intersecta.org
 # Fecha de creación:            14 de enero de 2021
-# Última actualización:         23 de enero de 2021
+# Última actualización:         24 de enero de 2021
 #------------------------------------------------------------------------------#
 
 # 0. Configuración inicial -----------------------------------------------------
@@ -89,7 +89,7 @@ df_sitjurid <- df_sitjurid_crudo        %>%
                 comision         = "Comisión", 
                 realizacion      = "Realización", 
                 alcaldia_ocurr   = "Alcaldía de ocurrencia", 
-                resolución       = "Resolución a la situación jurídica") 
+                resolucion       = "Resolución a la situación jurídica") 
 
 df_alternas <- df_alternas_crudo          %>% 
         rename(materia         = "Materia", 
@@ -105,7 +105,7 @@ df_alternas <- df_alternas_crudo          %>%
                 comision       = "Comisión", 
                 realizacion    = "Realización", 
                 alcaldia_ocurr = "Alcaldía de ocurrencia", 
-                tipo_solución  = "Tipo de solución alterna o terminación anticipada")
+                solucion  = "Tipo de solución alterna o terminación anticipada")
 
 df_cautelares <- df_cautelares_crudo %>% 
         rename(materia         = "Materia", 
@@ -138,7 +138,7 @@ df_sentencias <- df_sentencias_crudo %>%
                 realizacion    = "Realización", 
                 alcaldia_ocurr = "Alcaldía de ocurrencia del delito", 
                 forma_proceso  = "Forma del proceso", 
-                tipo_sentencia = "Tipo de sentencia", 
+                sentencia = "Tipo de sentencia", 
                 years_sentencia = "Años de sentencia", 
                 months_sentencia = "Meses de sentencia", 
                 días_sentencia = "Días de sentencia") 
@@ -227,6 +227,173 @@ df_freq2 <- as.data.frame(table(df_freq)) %>%
 
 # 2.4 Crear nuevas variables ---------------------------------------------------
 
+# 2.4.1 Asuntos ingresados -----------------------------------------------------
+
+df_asuntos_renombrado1 <- df_asuntos %>% 
+        filter(year_ingreso != "2015")                                %>% # Filtrar 2015 
+        # Unificar categorías de homicidio y feminicidio en 1 
+        mutate(homicidio_1 = as.numeric(str_detect(delito, "Homicidio")), 
+               homicidio_2 = as.numeric(str_detect(delito, "Feminicidio")), 
+               homicidio   = homicidio_1 + homicidio_2)                 %>% 
+        # Unificar categorías para secuestros 
+        mutate(secuestro_1 = as.numeric(str_detect(delito, "Secuestro")), 
+               secuestro_2 = as.numeric(str_detect(delito, "Privación de la libertad")), 
+               secuestro   = secuestro_1 + secuestro_2)                 %>% 
+        # Unificar categorías para delitos sexuales
+        mutate(sexuales_1  = as.numeric(str_detect(delito, "Abuso sexual")), 
+               sexuales_2  = as.numeric(str_detect(delito, "Violacion")), 
+               sexuales_3  = as.numeric(str_detect(delito, "Hostigamiento")), 
+               sexuales    = sexuales_1 + sexuales_2 + sexuales_3)      %>% 
+        # Crear variables dummies para otros delitos
+        mutate(salud       = as.numeric(str_detect(delito, "salud")),
+               robo        = as.numeric(str_detect(delito, "Robo")), 
+               familiar    = as.numeric(str_detect(delito, "Violencia familiar")), 
+               lesiones    = as.numeric(str_detect(delito, "Lesiones")),
+               extorsion   = as.numeric(str_detect(delito, "Extorsion")), 
+               objetos     = as.numeric(str_detect(delito, "Portación de objetos")), 
+               encubrimiento = as.numeric(str_detect(delito, "Encubrimiento"))) %>% 
+        # Crear categoría para el resto de los delitos 
+        mutate(otros = ifelse(homicidio != 1 & salud != 1    & robo != 1 & 
+                        familiar  != 1 & lesiones != 1 & encubrimiento != 1 &
+                        extorsion != 1 & objetos  != 1 & secuestro != 1 & 
+                        sexuales  != 1, 1, 0)) %>% 
+        # Retirar variables innecesarias 
+        dplyr::select(-c(homicidio_1, homicidio_2, secuestro_1, secuestro_2,
+                sexuales_1, sexuales_2, sexuales_3)) 
+
+# Crear nueva variable con nombres cortos de los delitos                        
+df_asuntos_final <- df_asuntos_renombrado1 %>% 
+        mutate(delitos_cortos = case_when(homicidio == 1 ~ "Homicidio",
+                salud     == 1 ~ "Delitos contra la salud",
+                robo      == 1 ~ "Robo",
+                familiar  == 1 ~ "Violencia familiar",
+                lesiones  == 1 ~ "Lesiones",
+                encubrimiento == 1 ~ "Encubrimiento",
+                extorsion == 1 ~ "Extorsión",
+                objetos   == 1 ~ "Portación de objetos aptos para agredir",
+                secuestro == 1 ~ "Secuestro",
+                sexuales  == 1 ~ "Delitos sexuales",
+                otros     == 1 ~ "Otros delitos")) %>% 
+        # Renombrar variable de sexo 
+        mutate(sexo_indiciada = case_when(sexo_indiciada == "Femenino" ~ "Mujeres", 
+                sexo_indiciada == "Masculino" ~ "Hobres", 
+                sexo_indiciada == "No especificado" ~ "No especificado" ))
+
+
+# 2.4.2 Situación jurídica -----------------------------------------------------
+df_sitjurid_renombrado1 <- df_sitjurid %>% 
+        filter(year_resolucion != "2015")                                %>% # Filtrar 2015 
+        # Unificar categorías de homicidio y feminicidio en 1 
+        mutate(homicidio_1 = as.numeric(str_detect(delito, "Homicidio")), 
+                homicidio_2 = as.numeric(str_detect(delito, "Feminicidio")), 
+                homicidio   = homicidio_1 + homicidio_2)                 %>% 
+        # Unificar categorías para secuestros 
+        mutate(secuestro_1 = as.numeric(str_detect(delito, "Secuestro")), 
+                secuestro_2 = as.numeric(str_detect(delito, "Privación de la libertad")), 
+                secuestro   = secuestro_1 + secuestro_2)                 %>% 
+        # Unificar categorías para delitos sexuales
+        mutate(sexuales_1  = as.numeric(str_detect(delito, "Abuso sexual")), 
+                sexuales_2  = as.numeric(str_detect(delito, "Violacion")), 
+                sexuales_3  = as.numeric(str_detect(delito, "Hostigamiento")), 
+                sexuales    = sexuales_1 + sexuales_2 + sexuales_3)      %>% 
+        # Crear variables dummies para otros delitos
+        mutate(salud       = as.numeric(str_detect(delito, "salud")),
+                robo        = as.numeric(str_detect(delito, "Robo")), 
+                familiar    = as.numeric(str_detect(delito, "Violencia familiar")), 
+                lesiones    = as.numeric(str_detect(delito, "Lesiones")),
+                extorsion   = as.numeric(str_detect(delito, "Extorsion")), 
+                objetos     = as.numeric(str_detect(delito, "Portación de objetos")), 
+                encubrimiento = as.numeric(str_detect(delito, "Encubrimiento"))) %>% 
+        # Crear categoría para el resto de los delitos 
+        mutate(otros = ifelse(homicidio != 1 & salud != 1    & robo != 1 & 
+                        familiar  != 1 & lesiones != 1 & encubrimiento != 1 &
+                        extorsion != 1 & objetos  != 1 & secuestro != 1 & 
+                        sexuales  != 1, 1, 0)) %>% 
+        # Retirar variables innecesarias 
+        dplyr::select(-c(homicidio_1, homicidio_2, secuestro_1, secuestro_2,
+                sexuales_1, sexuales_2, sexuales_3)) 
+
+# Renombrar resolución (consultar cuáles son los mejores nombres para renombrar)
+df_sitjurid_renombrado2 <- df_sitjurid_renombrado1 %>% 
+        mutate(resolucion = case_when(resolucion == resolucion ~ resolucion))
+
+# Crear nueva variable con nombres cortos de los delitos                        
+df_sitjurid_final <- df_sitjurid_renombrado2 %>% 
+        mutate(delitos_cortos = case_when(homicidio == 1 ~ "Homicidio",
+                salud     == 1 ~ "Delitos contra la salud",
+                robo      == 1 ~ "Robo",
+                familiar  == 1 ~ "Violencia familiar",
+                lesiones  == 1 ~ "Lesiones",
+                encubrimiento == 1 ~ "Encubrimiento",
+                extorsion == 1 ~ "Extorsión",
+                objetos   == 1 ~ "Portación de objetos aptos para agredir",
+                secuestro == 1 ~ "Secuestro",
+                sexuales  == 1 ~ "Delitos sexuales",
+                otros     == 1 ~ "Otros delitos")) %>% 
+        # Renombrar variable de sexo 
+        mutate(sexo_procesada = case_when(sexo_procesada == "Femenino" ~ "Mujeres", 
+                sexo_procesada == "Masculino" ~ "Hobres", 
+                sexo_procesada == "No especificado" ~ "No especificado" ))
+
+
+# 2.4.3 Medidas alternas -------------------------------------------------------
+df_alternas_renombrado1 <- df_alternas %>% 
+        filter(year_audiencia != "2015")                                %>% # Filtrar 2015 
+        # Unificar categorías de homicidio y feminicidio en 1 
+        mutate(homicidio_1 = as.numeric(str_detect(delito, "Homicidio")), 
+                homicidio_2 = as.numeric(str_detect(delito, "Feminicidio")), 
+                homicidio   = homicidio_1 + homicidio_2)                 %>% 
+        # Unificar categorías para secuestros 
+        mutate(secuestro_1 = as.numeric(str_detect(delito, "Secuestro")), 
+                secuestro_2 = as.numeric(str_detect(delito, "Privación de la libertad")), 
+                secuestro   = secuestro_1 + secuestro_2)                 %>% 
+        # Unificar categorías para delitos sexuales
+        mutate(sexuales_1  = as.numeric(str_detect(delito, "Abuso sexual")), 
+                sexuales_2  = as.numeric(str_detect(delito, "Violacion")), 
+                sexuales_3  = as.numeric(str_detect(delito, "Hostigamiento")), 
+                sexuales    = sexuales_1 + sexuales_2 + sexuales_3)      %>% 
+        # Crear variables dummies para otros delitos
+        mutate(salud       = as.numeric(str_detect(delito, "salud")),
+                robo        = as.numeric(str_detect(delito, "Robo")), 
+                familiar    = as.numeric(str_detect(delito, "Violencia familiar")), 
+                lesiones    = as.numeric(str_detect(delito, "Lesiones")),
+                extorsion   = as.numeric(str_detect(delito, "Extorsion")), 
+                objetos     = as.numeric(str_detect(delito, "Portación de objetos")), 
+                encubrimiento = as.numeric(str_detect(delito, "Encubrimiento"))) %>% 
+        # Crear categoría para el resto de los delitos 
+        mutate(otros = ifelse(homicidio != 1 & salud != 1    & robo != 1 & 
+                        familiar  != 1 & lesiones != 1 & encubrimiento != 1 &
+                        extorsion != 1 & objetos  != 1 & secuestro != 1 & 
+                        sexuales  != 1, 1, 0)) %>% 
+        # Retirar variables innecesarias 
+        dplyr::select(-c(homicidio_1, homicidio_2, secuestro_1, secuestro_2,
+                sexuales_1, sexuales_2, sexuales_3)) 
+
+# Renombrar tipo de soluciones alternas (consultar cuáles son los nombres más adecuados)
+df_alternas_renombrado2 <- df_alternas_renombrado1 %>% 
+        mutate(solucion = case_when(solucion == solucion ~ solucion))
+
+
+# Crear nueva variable con nombres cortos de los delitos                        
+df_alternas_final <- df_alternas_renombrado2 %>% 
+        mutate(delitos_cortos = case_when(homicidio == 1 ~ "Homicidio",
+                salud     == 1 ~ "Delitos contra la salud",
+                robo      == 1 ~ "Robo",
+                familiar  == 1 ~ "Violencia familiar",
+                lesiones  == 1 ~ "Lesiones",
+                encubrimiento == 1 ~ "Encubrimiento",
+                extorsion == 1 ~ "Extorsión",
+                objetos   == 1 ~ "Portación de objetos aptos para agredir",
+                secuestro == 1 ~ "Secuestro",
+                sexuales  == 1 ~ "Delitos sexuales",
+                otros     == 1 ~ "Otros delitos")) %>% 
+        # Renombrar variable de sexo 
+        mutate(sexo_indiciada = case_when(sexo_indiciada == "Femenino" ~ "Mujeres", 
+                sexo_indiciada == "Masculino" ~ "Hobres", 
+                sexo_indiciada == "No especificado" ~ "No especificado" ))
+
+
+# 2.4.4 Medidas cautelares -----------------------------------------------------
 # Crear variables binarias para los delitos
 df_cautelares_renombrado1 <- df_cautelares                              %>% 
         filter(year_audiencia != "2015")                                %>% # Filtrar 2015 
@@ -279,18 +446,79 @@ df_cautelares_renombrado2 <- df_cautelares_renombrado1 %>%
                medida == "Prisión Preventiva" ~ "Prisión preventiva"))
 
 # Crear nueva variable con nombres cortos de los delitos                        
-df_cautelares_delitos <- df_cautelares_renombrado2 %>% 
+df_cautelares_final <- df_cautelares_renombrado2 %>% 
         mutate(delitos_cortos = case_when(homicidio == 1 ~ "Homicidio",
-                                          salud     == 1 ~ "Delitos contra la salud",
-                                          robo      == 1 ~ "Robo",
-                                          familiar  == 1 ~ "Violencia familiar",
-                                          lesiones  == 1 ~ "Lesiones",
-                                          encubrimiento == 1 ~ "Encubrimiento",
-                                          extorsion == 1 ~ "Extorsión",
-                                          objetos   == 1 ~ "Portación de objetos aptos para agredir",
-                                          secuestro == 1 ~ "Secuestro",
-                                          sexuales  == 1 ~ "Delitos sexuales",
-                                          otros     == 1 ~ "Otros delitos"))
+               salud     == 1 ~ "Delitos contra la salud",
+               robo      == 1 ~ "Robo",
+               familiar  == 1 ~ "Violencia familiar",
+               lesiones  == 1 ~ "Lesiones",
+               encubrimiento == 1 ~ "Encubrimiento",
+               extorsion == 1 ~ "Extorsión",
+               objetos   == 1 ~ "Portación de objetos aptos para agredir",
+               secuestro == 1 ~ "Secuestro",
+               sexuales  == 1 ~ "Delitos sexuales",
+               otros     == 1 ~ "Otros delitos"))  %>% 
+        mutate(sexo_vinculada = case_when(sexo_vinculada == "Femenino" ~ "Mujeres", 
+               sexo_vinculada == "Masculino" ~ "Hobres", 
+               sexo_vinculada == "No especificado" ~ "No especificado"))
+
+# 2.4.5 Sentencias -------------------------------------------------------------
+# Crear variables binarias para los delitos
+df_sentencias_renombrado1 <- df_sentencias %>% 
+        filter(year_sentencia != "2015")                                %>% # Filtrar 2015 
+        # Unificar categorías de homicidio y feminicidio en 1 
+        mutate(homicidio_1 = as.numeric(str_detect(delito, "Homicidio")), 
+                homicidio_2 = as.numeric(str_detect(delito, "Feminicidio")), 
+                homicidio   = homicidio_1 + homicidio_2)                 %>% 
+        # Unificar categorías para secuestros 
+        mutate(secuestro_1 = as.numeric(str_detect(delito, "Secuestro")), 
+                secuestro_2 = as.numeric(str_detect(delito, "Privación de la libertad")), 
+                secuestro   = secuestro_1 + secuestro_2)                 %>% 
+        # Unificar categorías para delitos sexuales
+        mutate(sexuales_1  = as.numeric(str_detect(delito, "Abuso sexual")), 
+                sexuales_2  = as.numeric(str_detect(delito, "Violacion")), 
+                sexuales_3  = as.numeric(str_detect(delito, "Hostigamiento")), 
+                sexuales    = sexuales_1 + sexuales_2 + sexuales_3)      %>% 
+        # Crear variables dummies para otros delitos
+        mutate(salud       = as.numeric(str_detect(delito, "salud")),
+                robo        = as.numeric(str_detect(delito, "Robo")), 
+                familiar    = as.numeric(str_detect(delito, "Violencia familiar")), 
+                lesiones    = as.numeric(str_detect(delito, "Lesiones")),
+                extorsion   = as.numeric(str_detect(delito, "Extorsion")), 
+                objetos     = as.numeric(str_detect(delito, "Portación de objetos")), 
+                encubrimiento = as.numeric(str_detect(delito, "Encubrimiento"))) %>% 
+        # Crear categoría para el resto de los delitos 
+        mutate(otros = ifelse(homicidio != 1 & salud != 1    & robo != 1 & 
+                        familiar  != 1 & lesiones != 1 & encubrimiento != 1 &
+                        extorsion != 1 & objetos  != 1 & secuestro != 1 & 
+                        sexuales  != 1, 1, 0)) %>% 
+        # Retirar variables innecesarias 
+        dplyr::select(-c(homicidio_1, homicidio_2, secuestro_1, secuestro_2,
+                sexuales_1, sexuales_2, sexuales_3)) 
+
+
+# Renombrar tipo de soluciones alternas (consultar cuáles son los nombres más adecuados)
+df_sentencias_renombrado2 <- df_sentencias_renombrado1 %>% 
+        mutate(sentencia = case_when(sentencia == sentencia ~ sentencia))
+
+
+# Crear nueva variable con nombres cortos de los delitos                        
+df_sentencias_final <- df_sentencias_renombrado2 %>% 
+        mutate(delitos_cortos = case_when(homicidio == 1 ~ "Homicidio",
+                salud     == 1 ~ "Delitos contra la salud",
+                robo      == 1 ~ "Robo",
+                familiar  == 1 ~ "Violencia familiar",
+                lesiones  == 1 ~ "Lesiones",
+                encubrimiento == 1 ~ "Encubrimiento",
+                extorsion == 1 ~ "Extorsión",
+                objetos   == 1 ~ "Portación de objetos aptos para agredir",
+                secuestro == 1 ~ "Secuestro",
+                sexuales  == 1 ~ "Delitos sexuales",
+                otros     == 1 ~ "Otros delitos")) %>% 
+        # Renombrar variable de sexo 
+        mutate(sexo_sentenciada = case_when(sexo_sentenciada == "Femenino" ~ "Mujeres", 
+               sexo_sentenciada == "Masculino" ~ "Hobres", 
+               sexo_sentenciada == "No especificado" ~ "No especificado" ))
 
 
 # 3. Unificar bases ------------------------------------------------------------
@@ -317,13 +545,20 @@ sum(is.na(df_completa$id_per_ofendida))
 sum(is.na(df_completa$id_per_agresora))
 
 
-
 # 4. Guardar bases limpias -----------------------------------------------------
 # Renombrar bases con nombres definitivos 
-df_cautelares <- df_cautelares_delitos
+df_asuntos_ingresados   <- df_asuntos_final
+df_situacion_juridica   <- df_sitjurid_final
+df_soluciones_alternas  <- df_alternas_final
+df_medidas_cautelares   <- df_cautelares_final
+df_sentencias           <- df_sentencias_final
 
-save(df_cautelares, file = paste0(out, "df_cautelares.RData"))
-
+# Guardar bases en formato RData
+save(df_asuntos_ingresados, file = paste0(out, "df_asuntos_ingresados.RData"))
+save(df_situacion_juridica, file = paste0(out, "df_situacion_juridica.RData"))
+save(df_soluciones_alternas, file = paste0(out, "df_soluciones_alternas.RData"))
+save(df_medidas_cautelares, file = paste0(out, "df_medidas_cautelares.RData"))
+save(df_sentencias, file = paste0(out, "df_sentencias.RData"))
 
 
 

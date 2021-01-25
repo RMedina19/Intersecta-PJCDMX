@@ -3,7 +3,7 @@
 # Encargadas:                   Estefanía Vela y Regina I. Medina
 # Correo:                       rmedina@intersecta.org
 # Fecha de creación:            10 de enero de 2021
-# Última actualización:         23 de enero de 2021
+# Última actualización:         24 de enero de 2021
 #------------------------------------------------------------------------------#
 
 # 0. Configuración inicial -----------------------------------------------------
@@ -23,7 +23,7 @@ inp <- "datos_limpios/"
 out <- "figuras/"
 
 # 1. Cargar datos --------------------------------------------------------------
-load(paste0(inp, "df_cautelares.RData"))
+load(paste0(inp, "df_medidas_cautelares.RData"))
 
 # 2. Configuración del tema para visualización ---------------------------------
 
@@ -313,7 +313,7 @@ ggplot(df_year_medidas) +
         theme(legend.position = "right", 
                 legend.key.size = unit(.5, "cm"),
                 legend.key.width = unit(.5,"cm")) 
-ggsave(paste(out, "1 MEDIDAS X AÑO.png", sep = "/"), width = 20, height = 16)
+ggsave(paste(out, "g_medidas_año.png", sep = "/"), width = 20, height = 16)
 
 
 # 4.9 Sentido de la sentencia por sexo -----------------------------------------
