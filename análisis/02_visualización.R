@@ -74,7 +74,10 @@ tema <- theme_linedraw() +
                 strip.text.x = element_text(size=16, 
                                         family = "Helvetica"),
                 strip.text.y = element_text(size=16, 
-                                        family = "Helvetica"))
+                                        family = "Helvetica")) +
+        scale_fill_manual(values = c("#EDF7FC","#F6CCEE", "#04C0E4", "#016FB9", 
+                "#3AB79C","#A3FEFC", "#FF82A9", "#e63946", "#457b9d", "#2a9d8f", 
+                "#e5989b"))
 
 fill_base        <-  c("#F178B1","#998FC7", "#FF8C00", "#663399", "#C2F970", 
                         "#00979C", "#B1EDE8", "#FE5F55")
@@ -82,16 +85,184 @@ fill_autoridades <-  c("#F178B1","#998FC7", "#FF8C00", "#663399", "#C2F970",
                         "#00979C", "#B1EDE8", "#FE5F55", "#C52233")
 fill_dos         <-  c("#F178B1","#998FC7")
 
-
-
+fill_default <-  c("#EDF7FC", "#F6CCEE", "#04C0E4", "#016FB9", "#3AB79C",
+                   "#A3FEFC", "#FF82A9", "#e63946", "#457b9d", "#2a9d8f", 
+                   "#e5989b", "#9b5de5", "#0466c8", "#ffee32")
 
 # Establecer vectores de texto 
 leyenda <- "\n Fuente: Respuesta del TSJCDMX a solicitud de acceso a la información pública. "
 
 
 # 3. Visualizaciones de asuntos ingresados -------------------------------------
+# Delitos
+df_delitos <- df_asuntos_ingresados %>% 
+        group_by(delitos_cortos) %>% 
+        summarize(total = n()) %>% 
+        mutate(denomin = sum(total, na.rm = T),
+                porcent = round(total / denomin * 100, 1))
+
+# Visualización 
+ggplot(df_delitos, 
+        aes(x = delitos_cortos, y = porcent, fill = fill_default[10])) +
+        geom_bar(stat = "identity") +
+        geom_text(aes(label = paste0(porcent, "%")),
+                position = position_stack(vjust = 0.5), 
+                size = 4, color = "black", family = "Helvetica") +
+        labs(title = "Distribución de delitos cometidos en CDMX", 
+                subtitle = "(2011-2020)", 
+                x = "", 
+                y = "Porcentaje") +
+        coord_flip(ylim=c(0,100)) +
+        tema
+
+# Guardar visualización 
+ggsave(paste0(out, asuntos, "g_delitos.png"), width = 18, height = 10)
+
+
+# Delitos por comisión 
+df_delitos_comision <- df_asuntos_ingresados %>% 
+        group_by(delitos_cortos, comision) %>% 
+        summarize(total = n()) %>% 
+        mutate(denomin = sum(total, na.rm = T),
+                porcent = round(total / denomin * 100, 1))
+
+
+# Visualización 
+ggplot(df_delitos_comision, 
+        aes(x = delitos_cortos, y = porcent, fill = comision)) +
+        geom_bar(stat = "identity") +
+        geom_text(aes(label = paste0(porcent, "%")),
+                position = position_stack(vjust = 0.5), 
+                size = 4, color = "black", family = "Helvetica") +
+        labs(title = "Distribución de delitos cometidos en CDMX", 
+                subtitle = "Según comisión (2011-2020)", 
+                x = "", 
+                y = "Porcentaje") +
+        coord_flip(ylim=c(0,100)) +
+        tema +
+        scale_fill_manual(values= fill_default)
+        
+# Guardar visualización 
+ggsave(paste0(out, asuntos, "g_delitos_comision.png"), width = 18, height = 10)
+
+
+# Delitos por año 
+df_delitos_year <- df_asuntos_ingresados %>% 
+        group_by(year_ingreso, delitos_cortos)        %>% 
+        summarize(total = n())                          %>% 
+        ungroup()                                       %>% 
+        group_by(year_ingreso)                        %>% 
+        mutate(denomin = sum(total, na.rm = T),
+                porcent = round(total / denomin * 100, 1))
+
+# View(df_year)
+
+# Visualización 
+ggplot(df_delitos_year) +
+        geom_area(aes(x = as.integer(year_ingreso), y = porcent, fill=delitos_cortos), size=2.5) +
+        labs(title = "Delitos de los asuntos ingresados al TSJ-CDMX", 
+                subtitle = "Por año \n", y = "\n Porcentaje \n", x="",
+                caption = leyenda, 
+                fill ="Delitos:") +
+        scale_fill_manual(values = fill_default) +
+        scale_x_continuous(breaks=seq(from=2011, to=2020, by=1)) +
+        scale_y_continuous(breaks=seq(from=0, to=100, by=10)) +
+        tema +
+        theme(axis.text.x = element_text(angle = 0, hjust = .5, vjust = .5)) +
+        coord_cartesian(ylim = c(0, 100))+
+        theme(legend.position = "top") 
+
+# Guardar visualización
+ggsave(paste0(out, asuntos, "g_delitos_año.png"), width = 20, height = 16)
+        
+        
+# Delitos por sexo         
+df_delitos_sexo <- df_asuntos_ingresados %>% 
+
+# Delitos por año y por sexo         
+df_delitos_year_sexo <- df_asuntos_ingresados %>% 
+
+
+
 # 4. Visualizaciones de personas agredidas -------------------------------------
+# Desagregación por sexo 
+df_sexo <- df_personas_agredidas %>% 
+        rename(sexo = sexo_victima) %>% 
+        group_by(sexo) %>% 
+        summarize(total = n()) %>% 
+        ungroup()  %>% 
+        mutate(denomin = sum(total, na.rm = T),
+                porcent = round(total / denomin * 100, 1)) %>% 
+        filter(is.na(sexo) == FALSE)
+
+# Visualización 
+ggplot(df_sexo, 
+        aes(x = sexo, y = porcent, fill = sexo)) +
+        geom_bar(stat = "identity") +
+        geom_text(aes(label = paste0(porcent,"%")),
+                position = position_stack(vjust = 0.5), 
+                size = 4, color = "black", family = "Helvetica") +
+        labs(title    = "Proporción de víctimas",
+                subtitle = "Por sexo", 
+                caption  = leyenda, 
+                x = "", y = "", fill = "") +
+        tema +
+        scale_fill_manual(values= fill_default) +
+        coord_flip(ylim=c(0,100))   +
+        theme(legend.position = "top")
+
+# Guardar visualización
+ggsave(paste0(out, personas, "g_víctimas_genero.png"), width = 18, height = 10)
+
+
+# Desagregación por edad
+df_edad <- df_personas_agredidas %>% 
+        rename(edad = edad_victima) %>% 
+        group_by(edad) %>% 
+        summarize(total = n()) %>% 
+        ungroup()  %>% 
+        mutate(denomin = sum(total, na.rm = T),
+                porcent = round(total / denomin * 100, 1)) %>% 
+        filter(is.na(edad) == FALSE)
+
+
+# Visualización 
+ggplot(df_edad, 
+        aes(x = edad, y = porcent, fill = edad)) +
+        geom_bar(stat = "identity") +
+        geom_text(aes(label = paste0(porcent,"%")),
+                position = position_stack(vjust = 0.5), 
+                size = 4, color = "black", family = "Helvetica") +
+        labs(title    = "Proporción de víctimas",
+                subtitle = "Por edad", 
+                caption  = leyenda, 
+                x = "", 
+                y = "",
+                fill = "") +
+        tema +
+        #scale_fill_manual(values=c("#F178B1","#998FC7", "#04C0E4")) +
+        coord_flip(ylim=c(0,100))   +
+        theme(legend.position = "top")
+
+# Guardar visualización
+ggsave(paste0(out, personas, "g_víctimas_edad.png"), width = 18, height = 10)
+
+
+
 # 5. Visualizaciones de situación jurídica -------------------------------------
+# Por género
+df_genero <- df_situacion_juridica %>% 
+        rename(sexo = sexo_procesada) %>% 
+        group_by(sexo) %>% 
+        summarize(total = n()) %>% 
+        ungroup()  %>% 
+        mutate(denomin = sum(total, na.rm = T),
+                porcent = round(total / denomin * 100, 1)) %>% 
+        filter(is.na(sexo) == FALSE)
+
+# Por delito 
+
+
 # 6. Visualizaciones de soluciones alternas ------------------------------------
 # 7. Visualizaciones de medidas cautelares -------------------------------------
 # 7.1 Prisión preventiva por delito y comisión ---------------------------------
@@ -121,7 +292,7 @@ ggplot(df_prisprev,
              y = "",
              fill = "") +
         tema +
-        scale_fill_manual(values=c("#F178B1","#998FC7")) +
+        scale_fill_manual(values=fill_default) +
         facet_wrap(~delitos_cortos) +
         coord_flip(ylim=c(0,100))   +
         theme(legend.position = "top")
@@ -145,10 +316,11 @@ df_delito <- df_medidas_cautelares                              %>%
 # Visualización 
 ggplot(df_delito, aes(x = delitos_cortos, y=porcent, fill=comision)) +
         geom_bar(stat="identity", position="stack") +
-        scale_fill_manual(values=c("#F178B1","#998FC7"))+
+        scale_fill_manual(values=fill_default)+
         guides(fill = guide_legend(reverse=TRUE))+
         geom_text(aes(label=paste0(porcent,"%")),
-                position = position_stack(vjust = 0.5), size=4, color="black", family = "Helvetica")+
+                position = position_stack(vjust = 0.5), 
+                size=4, color="black", family = "Helvetica")+
         labs(title="Delitos por forma de comisión",
                 caption=leyenda, 
                 x="", y="",
@@ -176,10 +348,11 @@ df_year_delito <- df_medidas_cautelares                         %>%
 # Visualización 
 ggplot(df_year_delito) +
         geom_area(aes(x = as.integer(year_audiencia), y = porcent, fill=delitos_cortos), size=2.5) +
-        labs(title = "Delitos de las personas sentenciadas en la CDMX", subtitle = "Por año \n", y = "\n Porcentaje \n", x="",
+        labs(title = "Delitos de las personas sentenciadas en la CDMX", 
+                subtitle = "Por año \n", y = "\n Porcentaje \n", x="",
                 caption = leyenda, 
                 fill ="Delitos:") +
-        scale_fill_manual(values = c("#EDF7FC","#F6CCEE", "#04C0E4", "#016FB9", "#3AB79C","#A3FEFC", "#FF82A9", "#e63946", "#457b9d", "#2a9d8f", "#e5989b")) +
+        scale_fill_manual(values = fill_default) +
         scale_x_continuous(breaks=seq(from=2011, to=2020, by=1)) +
         scale_y_continuous(breaks=seq(from=0, to=100, by=10)) +
         tema +
@@ -205,11 +378,11 @@ df_medidas_delito <- df_medidas_cautelares                      %>%
 # Visualización 
 ggplot(df_medidas_delito) +
         geom_area(aes(x = as.integer(year_audiencia), y = porcent, fill=medida), size=2.5) +
-        labs(title = "Delitos de las personas sentenciadas en la CDMX", subtitle = "Por año \n", y = "\n Porcentaje \n", x="",
+        labs(title = "Delitos de las personas sentenciadas en la CDMX", 
+                subtitle = "Por año \n", y = "\n Porcentaje \n", x="",
                 caption = leyenda, 
                 fill ="Delitos:") +
-        scale_fill_manual(values = c("#EDF7FC","#F6CCEE", "#04C0E4", "#016FB9", "#3AB79C","#A3FEFC", "#FF82A9", "#e63946", "#457b9d", "#2a9d8f", "#e5989b",
-                "#9b5de5", "#0466c8", "#ffee32")) +
+        scale_fill_manual(values = fill_default) +
         scale_x_continuous(breaks=seq(from=2011, to=2020, by=1)) +
         scale_y_continuous(breaks=seq(from=0, to=100, by=10)) +
         tema +
@@ -239,11 +412,11 @@ df_medida_sexo <- df_medidas_cautelares                         %>%
 # Visualización 
 ggplot(df_medida_sexo) +
         geom_area(aes(x = as.integer(year_audiencia), y = porcent, fill=medida), size=2.5) +
-        labs(title = "Medidas cautelares dictadas en la CDMX", subtitle = "Por año, por sexo \n", y = "\n Porcentaje \n", x="",
+        labs(title = "Medidas cautelares dictadas en la CDMX", 
+                subtitle = "Por año, por sexo \n", y = "\n Porcentaje \n", x="",
                 caption = leyenda, 
                 fill ="Delitos:") +
-        scale_fill_manual(values = c("#EDF7FC","#F6CCEE", "#04C0E4", "#016FB9", "#3AB79C","#A3FEFC", "#FF82A9", "#e63946", "#457b9d", "#2a9d8f", "#e5989b",
-                "#9b5de5", "#0466c8", "#ffee32")) +
+        scale_fill_manual(values = fill_default) +
         scale_x_continuous(breaks=seq(from=2011, to=2020, by=1)) +
         scale_y_continuous(breaks=seq(from=0, to=100, by=10)) +
         tema +
@@ -274,11 +447,11 @@ df_medida_delito_sexo <- df_medidas_cautelares                                 %
 # Visualización 
 ggplot(df_medida_delito_sexo) +
         geom_area(aes(x = as.integer(year_audiencia), y = porcent, fill=delitos_cortos), size=2.5) +
-        labs(title = "Delitos que tuvieron prisión preventiva en la CDMX", subtitle = "Por año, por sexo \n", y = "\n Porcentaje \n", x="",
+        labs(title = "Delitos que tuvieron prisión preventiva en la CDMX", 
+                subtitle = "Por año, por sexo \n", y = "\n Porcentaje \n", x="",
                 caption = leyenda, 
                 fill ="Delitos:") +
-        scale_fill_manual(values = c("#EDF7FC","#F6CCEE", "#04C0E4", "#016FB9", "#3AB79C","#A3FEFC", "#FF82A9", "#e63946", "#457b9d", "#2a9d8f", "#e5989b",
-                "#9b5de5", "#0466c8", "#ffee32")) +
+        scale_fill_manual(values = fill_default) +
         scale_x_continuous(breaks=seq(from=2011, to=2020, by=1)) +
         scale_y_continuous(breaks=seq(from=0, to=100, by=10)) +
         tema +
@@ -305,11 +478,11 @@ df_year_medidas <- df_medidas_cautelares                        %>%
 # Visualización 
 ggplot(df_year_medidas) +
         geom_area(aes(x = as.integer(year_audiencia), y = porcent, fill=medida), size=2.5) +
-        labs(title = "Medidas cautelares dictadas por el Tribunal Superior de Justicia de la CDMX", subtitle = "Por año \n", y = "\n Porcentaje \n", x="",
+        labs(title = "Medidas cautelares dictadas por el Tribunal Superior de Justicia de la CDMX", 
+                subtitle = "Por año \n", y = "\n Porcentaje \n", x="",
                 caption = leyenda, 
                 fill ="Medidas cautelares:") +
-        scale_fill_manual(values = c("#EDF7FC","#F6CCEE", "#04C0E4", "#016FB9", "#3AB79C","#A3FEFC", "#FF82A9", "#e63946", "#457b9d", "#2a9d8f", "#e5989b",
-                "#9b5de5", "#0466c8", "#ffee32")) +
+        scale_fill_manual(values = fill_default) +
         scale_x_continuous(breaks=seq(from=2011, to=2020, by=1)) +
         scale_y_continuous(breaks=seq(from=0, to=100, by=10)) +
         tema +
@@ -320,7 +493,7 @@ ggplot(df_year_medidas) +
                 legend.key.width = unit(.5,"cm")) 
 
 # Guardar visualización
-ggsave(paste(out, medidas, "g_medidas_año.png", sep = "/"), width = 20, height = 16)
+ggsave(paste0(out, medidas, "g_medidas_año.png"), width = 20, height = 16)
 
 
 
@@ -342,10 +515,11 @@ df_sentencia_sexo <- df_medidas_cautelares                      %>%
 # Visualización 
 ggplot(df_sentencia_sexo) +
         geom_area(aes(x = as.integer(anio_ing), y = porcent, fill=sentencia), size=2.5) +
-        labs(title = "Sentido de la sentencia", subtitle = "Por año y sexo de la persona sentenciada \n", y = "\n Porcentaje \n", x="",
+        labs(title = "Sentido de la sentencia", 
+                subtitle = "Por año y sexo de la persona sentenciada \n", y = "\n Porcentaje \n", x="",
                 caption = leyenda, 
                 fill ="Delitos:") +
-        scale_fill_manual(values = c("#EDF7FC","#F6CCEE", "#04C0E4", "#016FB9", "#3AB79C","#A3FEFC", "#FF82A9", "#e63946", "#457b9d", "#2a9d8f", "#e5989b")) +
+        scale_fill_manual(values = fill_default) +
         scale_x_continuous(breaks=seq(from=2011, to=2019, by=1)) +
         scale_y_continuous(breaks=seq(from=0, to=100, by=10)) +
         tema +
@@ -369,13 +543,14 @@ df_delitos_condenadas <- df_medidas_cautelares                  %>%
         mutate(denomin = sum(total, na.rm = T),
                 porcent = round(total / denomin * 100, 1))
 
-# Visualización 
+        # Visualización 
 ggplot(df_delitos_condenadas) +
         geom_area(aes(x = as.integer(anio_ing), y = porcent, fill=delitos_cortos), size=2.5) +
-        labs(title = "Delitos de las personas condenadas", subtitle = "Por año y sexo de la persona condenada \n", y = "\n Porcentaje \n", x="",
+        labs(title = "Delitos de las personas condenadas", 
+                subtitle = "Por año y sexo de la persona condenada \n", y = "\n Porcentaje \n", x="",
                 caption = leyenda, 
                 fill ="Delitos:") +
-        scale_fill_manual(values = c("#EDF7FC","#F6CCEE", "#04C0E4", "#016FB9", "#3AB79C","#A3FEFC", "#FF82A9", "#e63946", "#457b9d", "#2a9d8f", "#e5989b")) +
+        scale_fill_manual(values = fill_default) +
         scale_x_continuous(breaks=seq(from=2011, to=2019, by=1)) +
         scale_y_continuous(breaks=seq(from=0, to=100, by=10)) +
         tema +
@@ -402,10 +577,11 @@ df_condenadas_sexo  <- sentenciados                     %>%
 # Visualización 
 ggplot(porano) +
         geom_area(aes(x = as.integer(anio_ing), y = porcent, fill=sexo), size=2.5) +
-        labs(title = "Sexo de las personas condenadas en la CDMX", subtitle = "Por año y por delito \n", y = "\n Porcentaje \n", x="",
+        labs(title = "Sexo de las personas condenadas en la CDMX", 
+                subtitle = "Por año y por delito \n", y = "\n Porcentaje \n", x="",
                 caption = leyenda, 
                 fill ="Sexo de la persona condenada:") +
-        scale_fill_manual(values = c("#EDF7FC","#F6CCEE", "#04C0E4", "#016FB9", "#3AB79C","#A3FEFC", "#FF82A9", "#e63946", "#457b9d", "#2a9d8f", "#e5989b")) +
+        scale_fill_manual(values = fill_default) +
         scale_x_continuous(breaks=seq(from=2011, to=2019, by=1)) +
         scale_y_continuous(breaks=seq(from=0, to=100, by=10)) +
         tema +
