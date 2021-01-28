@@ -75,7 +75,8 @@ df_personas <- df_personas_crudo        %>%
                 id_per_ofendida = "Indice para agrupación 3\r\n(Persona)", 
                 sexo_victima    = "Sexo de la persona involucrada como víctima u ofendida", 
                 edad_victima    = "Edad de la persona involucrada como víctima u ofendida", 
-                relacion        = "Relación entre la persona involucrada como víctima u ofendida y la persona probable responsable de la comisión del delito")
+                relacion        = "Relación entre la persona involucrada como víctima u ofendida y la persona probable responsable de la comisión del delito") %>% 
+        mutate(base_ofendida = 1)
 
 
 df_sitjurid <- df_sitjurid_crudo        %>%
@@ -428,7 +429,7 @@ df_sitjurid_acusados <- df_sitjurid_vars_wide %>%
         mutate(num_delitos = homicidio + secuestro + sexuales + salud + robo +
                         familiar + lesiones + extorsion + objetos + 
                         encubrimiento + otros) %>% 
-        mutate(base_sijurid = 1)
+        mutate(base_sitjurid = 1)
 
 
 # Ver frecuencia de expedientes y personas 
@@ -773,26 +774,6 @@ df_freq_per <- as.data.frame(table(df_sentencias_acusados$id_per_acusada)) # No 
 # Este folio único para persona está repetido: 2558706
 # Pero al buscarlo en las bases aparecen edades distintas, como si se hubiera
 # utilizado para personas distintas 
-
-
-
-# # 3. Unificar bases ------------------------------------------------------------
-# # Unir base de asuntos ingresados con datos de personas ofendidas
-# df_unida1 <- df_asuntos %>% 
-#         full_join(df_personas,   by = c("id_exp")) 
-# 
-# 
-# # Unir con base de situación jurídica 
-# df_unida2 <- df_unida1 %>% 
-#         full_join(df_sitjurid,   by = c("id_exp", "id_per_acusada")) 
-#         full_join(df_sitjurid,   by = c("id_exp", "id_per_acusada")) %>%
-#         full_join(df_alternas,   by = c("id_exp", "id_per_acusada")) %>% 
-#         full_join(df_cautelares, by = c("id_exp", "id_per_acusada")) %>% 
-#         full_join(df_sentencias, by = c("id_exp", "id_per_acusada")) 
-# 
-# sum(is.na(df_completa$id_exp))
-# sum(is.na(df_completa$id_per_ofendida))
-# sum(is.na(df_completa$id_per_acusada))
 
 
 # 4. Guardar bases limpias -----------------------------------------------------
