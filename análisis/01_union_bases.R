@@ -26,7 +26,7 @@ setwd(dir)
 # 1. Cargar datos --------------------------------------------------------------
 
 load(paste0(inp, "df_asuntos_ingresados_nivel_acusado.Rdata"))
-load(paste0(inp, "df_personas_agredidas.Rdata"))
+load(paste0(inp, "df_personas_agredidas_nivel_expediente.Rdata"))
 load(paste0(inp, "df_situacion_juridica_nivel_acusado.Rdata"))
 load(paste0(inp, "df_soluciones_alternas_nivel_acusado.Rdata"))
 load(paste0(inp, "df_medidas_cautelares_nivel_acusado.Rdata"))
@@ -34,12 +34,22 @@ load(paste0(inp, "df_sentencias_nivel_acusado.Rdata"))
 
 
 # 2. Unir bases ----------------------------------------------------------------
-# Juntar asuntos ingresados y personas agredidas
+# 2.1 Juntar asuntos ingresados y personas agredidas ---------------------------
 df_unida1 <- df_asuntos_ingresados_nivel_acusado %>% 
-        left_join(df_personas_agredidas, by = c("id_exp"))
+        left_join(df_personas_agredidas_nivel_expediente, by = c("id_exp"))
 
-# Añadir situación jurídica
-df_unida2 <- df_asuntos_ingresados_nivel_acusado %>% 
+# Revisar frecuencia de expedientes
+df_freq_exp <- as.data.frame(table(df_unida1$id_exp))
+#table(df_freq_exp$Freq)
+
+# Revisar frecuencia de personas acusadas
+df_freq_per <- as.data.frame(table(df_unida1$id_per_acusada)) 
+table(df_freq_per$Freq)
+
+
+
+# 2.2 Añadir situación jurídica ------------------------------------------------
+df_unida2 <- df_unida1 %>% 
         full_join(df_situacion_juridica_nivel_acusado, 
                 by = c("id_exp", "id_per_acusada", "materia", "num_alcaldias", 
                         "num_consignacion", "num_comision", "num_realizacion", 
@@ -47,7 +57,17 @@ df_unida2 <- df_asuntos_ingresados_nivel_acusado %>%
                         "familiar", "lesiones", "extorsion", "objetos", 
                         "encubrimiento", "otros", "num_delitos"))
 
-# Añadir soluciones alternas
+# Revisar frecuencia de expedientes
+df_freq_exp <- as.data.frame(table(df_unida2$id_exp))
+#table(df_freq_exp$Freq)
+
+# Revisar frecuencia de personas acusadas
+df_freq_per <- as.data.frame(table(df_unida2$id_per_acusada)) 
+table(df_freq_per$Freq)
+
+                # Folio de persona que es utilizado en más de una: 10806638
+
+# 2.3 Añadir soluciones alternas -----------------------------------------------
 df_unida3 <- df_unida2 %>% 
         full_join(df_soluciones_alternas_nivel_acusado, 
                 by = c("id_exp", "id_per_acusada", "edad_indiciada", 
@@ -57,9 +77,18 @@ df_unida3 <- df_unida2 %>%
                         "familiar", "lesiones", "extorsion", "objetos", 
                         "encubrimiento", "otros", "num_delitos"))
 
+# Revisar frecuencia de expedientes
+df_freq_exp <- as.data.frame(table(df_unida3$id_exp))
+#table(df_freq_exp$Freq)
+
+# Revisar frecuencia de personas acusadas
+df_freq_per <- as.data.frame(table(df_unida3$id_per_acusada)) 
+table(df_freq_per$Freq)
+
+                # Folio de persona que es utilizado en más de una: 29426034
 
 
-# Añadir medidas cautelares
+# 2.4 Añadir medidas cautelares ------------------------------------------------
 df_unida4 <- df_unida3 %>% 
         full_join(df_medidas_cautelares_nivel_acusado, 
                 by = c("id_exp", "id_per_acusada", "materia", "num_alcaldias", 
@@ -68,7 +97,16 @@ df_unida4 <- df_unida3 %>%
                         "familiar", "lesiones", "extorsion", "objetos", 
                         "encubrimiento", "otros", "num_delitos", 
                         "year_audiencia", "month_audiencia"))
-# Añadir sentencias 
+
+# Revisar frecuencia de expedientes
+df_freq_exp <- as.data.frame(table(df_unida4$id_exp))
+#table(df_freq_exp$Freq)
+
+# Revisar frecuencia de personas acusadas
+df_freq_per <- as.data.frame(table(df_unida4$id_per_acusada)) 
+table(df_freq_per$Freq)
+
+# 2.5 Añadir sentencias --------------------------------------------------------
 df_unida5 <- df_unida4 %>% 
         full_join(df_sentencias_nivel_acusado, 
                 by = c("id_exp", "id_per_acusada", "materia", "num_alcaldias", 
@@ -78,12 +116,24 @@ df_unida5 <- df_unida4 %>%
                         "encubrimiento", "otros", "num_delitos")) 
 
 
-# Seleccionar variables finales
+# Revisar frecuencia de expedientes
+df_freq_exp <- as.data.frame(table(df_unida5$id_exp))
+#table(df_freq_exp$Freq)
+
+# Revisar frecuencia de personas acusadas
+df_freq_per <- as.data.frame(table(df_unida5$id_per_acusada)) 
+table(df_freq_per$Freq)
+
+# 3. Seleccionar variables finales ---------------------------------------------
+
+v_delitos <- c("homicidio", "secuestro", "sexuales", "salud", "robo", "familiar", 
+                "lesiones", "extorsion", "objetos", "encubrimiento", "otros")
+
 df_unida <- df_unida5 %>% 
-        #mutate(registro_bases = base_asuntos + base_sitjurid + base_sol_alternas + base_medida_cautelar + base_sentencias) %>% 
+        mutate(aparece_en_bases = base_asuntos + base_sitjurid + base_sol_alternas + base_medida_cautelar + base_sentencias) %>% 
         select(materia,  # Materia penal 
                 starts_with("id_"), # Identificadores de expediente y personas
-                #"registro_bases", 
+                "aparece_en_bases", 
                 starts_with("base_"), # Bases en las que se encuentra
                 starts_with("num_"), # Número de variables agregadas
                 # Temporalidad
@@ -92,16 +142,17 @@ df_unida <- df_unida5 %>%
                 # Demográficos 
                 starts_with("sexo_"), 
                 starts_with("edad_"),
-                #relacion, 
+                starts_with("v_"),
+                starts_with("r_"), 
                 # Delitos
-                "homicidio", "secuestro", "sexuales", "salud", "robo", "familiar", 
-                "lesiones", "extorsion", "objetos", "encubrimiento", "otros", 
+                v_delitos, 
                 starts_with("s_"), # Situación jurídica
                 starts_with("a_"), # Soluciones alternas
                 starts_with("m_"), # Medidas cautelares
                 starts_with("sentencia_")) # Sentencias 
 
-# 3. Controles de revisión 
+
+# 4. Controles de revisión -----------------------------------------------------
 # Folios que se repiten 
 # Ver frecuencia de expedientes y personas 
 df_freq_exp <- table(df_unida$id_exp)
@@ -117,8 +168,10 @@ dim(df_soluciones_alternas_nivel_acusado)
 dim(df_medidas_cautelares_nivel_acusado)
 dim(df_sentencias_nivel_acusado)
 dim(df_unida5)
+dim(df_unida)
 
-# 4. Guardar base final --------------------------------------------------------
+
+# 5. Guardar base final --------------------------------------------------------
 # Renombrar con base definitiva 
 df_TJCDMX <- df_unida 
 

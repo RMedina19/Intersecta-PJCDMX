@@ -328,8 +328,56 @@ df_freq_exp <- table(df_asuntos_acusados$id_exp)
 df_freq_per <- as.data.frame(table(df_asuntos_acusados$id_per_acusada))
 
 
+# 2.4.2 Personas agredidas -----------------------------------------------------
+df_personas_vars_wide <- df_personas %>% 
+        # Renombrar variable de sexo 
+        mutate(sexo_victima = case_when(sexo_victima == "Femenino" ~ "Mujer", 
+               sexo_victima == "Masculino" ~ "Hombre", 
+               sexo_victima == "No especificado" ~ "No especificado")) %>% 
+        # Variables dummies para víctimas por sexo 
+        mutate(v_mujeres = as.numeric(str_detect(sexo_victima, "Mujer")), 
+               v_hombres = as.numeric(str_detect(sexo_victima, "Hombre")), 
+               v_no_esp  = as.numeric(str_detect(sexo_victima, "No especificado")))  %>% 
+        # Variables dummies para tipo de relación 
+        mutate(r_academica = as.numeric(str_detect(relacion, "Académica")), 
+               r_autoridad = as.numeric(str_detect(relacion, "Autoridad")),
+               r_concubinato = as.numeric(str_detect(relacion, "Concubinato")),
+               r_empleo = as.numeric(str_detect(relacion, "Empleo o profesión")), 
+               r_ninguna = as.numeric(str_detect(relacion, "Ninguna")),
+               r_no_especif = as.numeric(str_detect(relacion, "No especificado")),
+               r_no_identif = as.numeric(str_detect(relacion, "No identificada")),
+               r_otro_tipo = as.numeric(str_detect(relacion, "Otro tipo de relación")),
+               r_parent_afin = as.numeric(str_detect(relacion, "Parentesco por afinidad")),
+               r_parent_sang = as.numeric(str_detect(relacion, "Parentesco por consanguinidad")),
+               r_tutor = as.numeric(str_detect(relacion, "Tutor o curador")))
 
-# 2.4.2 Situación jurídica -----------------------------------------------------
+df_personas_expediente <- df_personas_vars_wide %>% 
+        group_by(id_exp) %>% 
+        summarise(v_total = n(), 
+                # Número de víctimas desagregadas por sexo
+                v_mujeres = sum(v_mujeres), 
+                v_hombres = sum(v_hombres), 
+                v_no_esp = sum(v_no_esp), 
+                # Tipo de relación 
+                r_academica = sum(r_academica), 
+                r_autoridad = sum(r_autoridad), 
+                r_concubinato = sum(r_concubinato), 
+                r_empleo = sum(r_empleo), 
+                r_ninguna = sum(r_ninguna), 
+                r_no_especif = sum(r_no_especif), 
+                r_no_identif = sum(r_no_identif), 
+                r_otro_tipo = sum(r_otro_tipo), 
+                r_parent_afin = sum(r_parent_afin), 
+                r_parent_sang = sum(r_parent_sang), 
+                r_tutor = sum(r_tutor)) 
+                
+# El problema de que esté desagregada por víctima y luego por expediente es que 
+# si hago la unión con las personas agresoras se va a repetir cada vez en todos
+# los casos en los que haya más de una persona agresora. 
+
+df_freq_exp <- table(df_personas_expediente$id_exp) # No hay ningún expediente repetido
+
+# 2.4.3 Situación jurídica -----------------------------------------------------
 df_sitjurid_renombrado1 <- df_sitjurid %>% 
         filter(year_resolucion != "2015")                                %>% # Filtrar 2015 
         # Unificar categorías de homicidio y feminicidio en 1 
@@ -437,7 +485,7 @@ df_freq_exp <- table(df_sitjurid_acusados$id_exp)
 df_freq_per <- as.data.frame(table(df_sitjurid_acusados$id_per_acusada))
 
 
-# 2.4.3 Soluciones alternas -------------------------------------------------------
+# 2.4.4 Soluciones alternas -------------------------------------------------------
 df_alternas_renombrado1 <- df_alternas %>% 
         filter(year_audiencia != "2015")                                %>% # Filtrar 2015 
         # Unificar categorías de homicidio y feminicidio en 1 
@@ -539,7 +587,7 @@ df_freq_exp <- table(df_alternas_acusados$id_exp)
 df_freq_per <- as.data.frame(table(df_alternas_acusados$id_per_acusada)) # No se repiten personas :')
 
 
-# 2.4.4 Medidas cautelares -----------------------------------------------------
+# 2.4.5 Medidas cautelares -----------------------------------------------------
 # Crear variables binarias para los delitos
 df_cautelares_renombrado1 <- df_cautelares                              %>% 
         filter(year_audiencia != "2015")                                %>% # Filtrar 2015 
@@ -675,7 +723,7 @@ df_freq_exp <- table(df_cautelares_acusados$id_exp)
 df_freq_per <- as.data.frame(table(df_cautelares_acusados$id_per_acusada)) # No se repiten personas :')
 
 
-# 2.4.5 Sentencias -------------------------------------------------------------
+# 2.4.6 Sentencias -------------------------------------------------------------
 # Crear variables binarias para los delitos
 df_sentencias_renombrado1 <- df_sentencias %>% 
         filter(year_sentencia != "2015")                                %>% # Filtrar 2015 
@@ -781,7 +829,6 @@ df_freq_per <- as.data.frame(table(df_sentencias_acusados$id_per_acusada)) # No 
 # Bases a nivel delito 
 # Renombrar bases con nombres definitivos 
 df_asuntos_ingresados_nivel_delito   <- df_asuntos_delitos
-df_personas_agredidas                <- df_personas
 df_situacion_juridica_nivel_delito   <- df_sitjurid_delitos
 df_soluciones_alternas_nivel_delito  <- df_alternas_delitos
 df_medidas_cautelares_nivel_delito   <- df_cautelares_delitos
@@ -811,6 +858,14 @@ save(df_situacion_juridica_nivel_acusado, file = paste0(out, "df_situacion_jurid
 save(df_soluciones_alternas_nivel_acusado, file = paste0(out, "df_soluciones_alternas_nivel_acusado.RData"))
 save(df_medidas_cautelares_nivel_acusado, file = paste0(out, "df_medidas_cautelares_nivel_acusado.RData"))
 save(df_sentencias_nivel_acusado, file = paste0(out, "df_sentencias_nivel_acusado.RData"))
+
+
+# Bases de víctimas 
+df_personas_agredidas_nivel_persona    <- df_personas
+df_personas_agredidas_nivel_expediente <- df_personas_expediente
+
+save(df_personas_agredidas_nivel_persona, file = paste0(out, "df_personas_agredidas_nivel_persona.RData"))
+save(df_personas_agredidas_nivel_expediente, file = paste0(out, "df_personas_agredidas_nivel_expediente.RData"))
 
 
 beepr::beep(5)
