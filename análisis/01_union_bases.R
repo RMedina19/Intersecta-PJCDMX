@@ -16,7 +16,7 @@ p_load(readxl, tidyverse, dplyr, here, beepr)
 rm(list=ls())
 
 # Establecer directorios
-dir <- paste0(here::here(), "/GitHub/Intersecta-PJCDMX")
+dir <- here::here()
 inp <- "datos_limpios/"
 out <- "datos_limpios/"
 

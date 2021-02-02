@@ -16,7 +16,7 @@ p_load(readxl, tidyverse, dplyr, here, beepr)
 rm(list=ls())
 
 # Establecer directorios
-dir <- paste0(here::here(), "/GitHub/Intersecta-PJCDMX")
+dir <- here::here()
 inp <- "datos_crudos/"
 out <- "datos_limpios/"
 
@@ -27,27 +27,28 @@ setwd(dir)
 # Sobre delitos cometidos en la Ciudad de México entre mayo-2011 y sep-2020
 # Información de los asuntos ingresados por los diversos delitos
 df_asuntos_crudo       <- read_excel(paste0(inp, "F227220_081220 INFOMEX.xlsx"), 
-                                                skip = 8, sheet = "ingresados")
+                          skip = 8, sheet = "ingresados")   %>% slice(1:301833)
 
 # Información de las personas involucradas como víctimas u ofendidas 
 df_personas_crudo      <- read_excel(paste0(inp, "F227220_081220 INFOMEX.xlsx"), 
-                                                 skip = 8, sheet = "victOfend")
+                          skip = 8, sheet = "victOfend")    %>% slice(1:335316)
 
 # Información de los asuntos con resolución del auto de plazo constitucional
 df_sitjurid_crudo      <- read_excel(paste0(inp, "F227220_081220 INFOMEX.xlsx"), 
-                                                skip = 8, sheet = "situaJurid")  
+                          skip = 8, sheet = "situaJurid")   %>% slice(1:203050) 
 
 # Información de soluciones alternas o terminaciones anticipadas
 df_alternas_crudo      <- read_excel(paste0(inp, "F227220_081220 INFOMEX.xlsx"), 
-                                    skip = 8, sheet = "solAlternasTermAnticip")
+                          skip = 8, sheet = "solAlternasTermAnticip") %>% 
+                          slice(1:28696)
 
 # Información de la medida cautelar de prisión preventiva
 df_cautelares_crudo    <- read_excel(paste0(inp, "F227220_081220 INFOMEX.xlsx"), 
-                                             skip = 8, sheet = "medCautelares")
+                          skip = 8, sheet = "medCautelares") %>% slice(1:176809)
 
 # Información de las sentencias emitidas en primera instancia 
 df_sentencias_crudo    <- read_excel(paste0(inp, "F227220_081220 INFOMEX.xlsx"), 
-                                                skip = 7, sheet = "sentencias")
+                          skip = 7, sheet = "sentencias")   %>% slice(1:129493)
 
         
 # 2. Limpiar datos -------------------------------------------------------------
@@ -67,8 +68,8 @@ df_asuntos <- df_asuntos_crudo          %>%
                 realizacion      = "Realización", 
                 alcaldia   = "Alcaldía de ocurrencia") %>% 
         mutate(consignacion = case_when(consignacion == "con detenido" ~ "Con detenido", 
-                consignacion == "sin detenido" ~ "Sin detenido", 
-                consignacion == consignacion ~ consignacion))
+                                        consignacion == "sin detenido" ~ "Sin detenido", 
+                                        consignacion == consignacion ~ consignacion)) 
 
 df_personas <- df_personas_crudo        %>% 
         rename(id_exp           = "Indice para agrupación 1\r\n(Expediente / Carpeta)", 
@@ -125,7 +126,9 @@ df_cautelares <- df_cautelares_crudo %>%
                 comision       = "Comisión", 
                 realizacion    = "Realización", 
                 alcaldia = "Alcaldía de ocurrencia", 
-                medida    = "Tipo de medida cautelar") 
+                medida    = "Tipo de medida cautelar") %>% 
+        unique() # Me parece que en medidas cautelares sí tiene sentido que
+                 # se eliminen las observaciones repetidas. 
 
 df_sentencias <- df_sentencias_crudo %>% 
         rename(materia         = "Materia", 
@@ -151,78 +154,77 @@ df_sentencias <- df_sentencias_crudo %>%
 # expediente > agresor o víctima > delitos > medida cautelar o solución alterna
 
 # Asuntos - Mínimo grado de desagregación:  agresor (< expediente)
-dim(df_asuntos)[1]                              # 301,836 observaciones (asuntos por expediente y agresor)
-length(unique(df_asuntos$id_exp))               # 219,447 expedientes únicos
-length(unique(df_asuntos$id_per_acusada))      # 255,793 agresores únicos
+dim(df_asuntos)[1]                              # 301,833 observaciones (asuntos por expediente y agresor)
+length(unique(df_asuntos$id_exp))               # 219,446 expedientes únicos
+length(unique(df_asuntos$id_per_acusada))       # 255,792 agresores únicos
 
 # Personas ofendidas - Mínimo grado de desagregación:  víctima (< expediente)
-dim(df_personas)[1]                             # 335,319 observaciones (expediente por víctima)
-length(unique(df_personas$id_exp))              # 231,186 expedientes únicos
-length(unique(df_personas$id_per_ofendida))     # 252,738 víctimas únicas
+dim(df_personas)[1]                             # 335,316 observaciones (expediente por víctima)
+length(unique(df_personas$id_exp))              # 231,183 expedientes únicos
+length(unique(df_personas$id_per_ofendida))     # 252,737 víctimas únicas
 
 # Situación jurídica - Mínimo grado de desagregación:  agresor(< expediente)
-dim(df_sitjurid)[1]                             # 203,053 observaciones (asuntos con resolución de auto plazo por expediente y agresor)
-length(unique(df_sitjurid$id_exp))              # 152,686 expedientes únicos
-length(unique(df_sitjurid$id_per_acusada))     # 177,683 agresores únicos
+dim(df_sitjurid)[1]                             # 203,050 observaciones (asuntos con resolución de auto plazo por expediente y agresor)
+length(unique(df_sitjurid$id_exp))              # 152,685 expedientes únicos
+length(unique(df_sitjurid$id_per_acusada))      # 177,682 agresores únicos
 
 # Soluciones alternas - Mínimo grado de desagregación: solución alterna (< delito)
-dim(df_alternas)[1]                             #  28,699 observaciones (soluciones alternas por expediente y agresores)
-length(unique(df_alternas$id_exp))              #  21,987 expedientes únicos
-length(unique(df_alternas$id_per_acusada))     #  25,735 agresores únicos
+dim(df_alternas)[1]                             #  28,696 observaciones (soluciones alternas por expediente y agresores)
+length(unique(df_alternas$id_exp))              #  21,986 expedientes únicos
+length(unique(df_alternas$id_per_acusada))      #  25,734 agresores únicos
 
 # Medidas cautelares - Mínimo grado de desagregación: medida cautelar (< delito)
-dim(df_cautelares)[1]                           # 176,812 observaciones (medidas cautelares)
-length(unique(df_cautelares$id_exp))            #  48,286 expedientes únicos
-length(unique(df_cautelares$id_per_acusada))   #  63,260 agresores únicos
+dim(df_cautelares)[1]                           # 176,809 observaciones (medidas cautelares)
+length(unique(df_cautelares$id_exp))            #  48,285 expedientes únicos
+length(unique(df_cautelares$id_per_acusada))    #  63,259 agresores únicos
 
 # Sentencias - Mínimo grado de desagregación: delito (< agresor)
-dim(df_sentencias)[1]                           # 129,497 observaciones (sentencias por delito)
-length(unique(df_sentencias$id_exp))            #  97,177 expedientes únicos 
-length(unique(df_sentencias$id_per_acusada))   # 116,378 agresores únicos
+dim(df_sentencias)[1]                           # 129,493 observaciones (sentencias por delito)
+length(unique(df_sentencias$id_exp))            #  97,176 expedientes únicos 
+length(unique(df_sentencias$id_per_acusada))    # 116,377 agresores únicos
 
 
 # 2.3 Identificar folios repetidos ---------------------------------------------
 # Asuntos - Revisar folios repetidos 
 df_freq  <- table(df_asuntos$id_per_acusada)
-
-df_freq2 <- as.data.frame(table(df_freq)) %>% 
-                rename("Número de repeticiones" = df_freq, 
-                        "Observaciones" = Freq)
+df_freq2 <- as.data.frame(table(df_freq))
+print(df_freq2) # Frecuencia de repeticiones 
+        #  Observaciones: el delito de robo suele tener muchas repeticiones.
 
 # Personas ofendidas - Revisar folios repetidos
 df_freq  <- table(df_personas$id_per_ofendida)
-
-df_freq2 <- as.data.frame(table(df_freq)) %>% 
-                rename("Número de repeticiones" = df_freq, 
-                        "Observaciones" = Freq)
+df_freq2 <- as.data.frame(table(df_freq)) 
+print(df_freq2) # Frecuencia de repeticiones 
+        # Obs: la observación con más repeticiones (340) es "No especificado"
+        # Después sigue el folio 4408714 con 20 repeticiones aunque no hay 
+        # ningún dato demográfico registrado. Lo que cambia es el número de 
+        # expediente, pero no parece ser la misma víctima porque al buscar 
+        # en df_asuntos, los delitos de cada expediente son muy distintos. 
 
 # Situación jurídica - Revisar folios repetidos
 df_freq  <- table(df_sitjurid$id_per_acusada)
-
-df_freq2 <- as.data.frame(table(df_freq)) %>% 
-                rename("Número de repeticiones" = df_freq, 
-                        "Observaciones" = Freq)
+df_freq2 <- as.data.frame(table(df_freq))
+print(df_freq2) # Frecuencia de repeticiones 
+        #  Observaciones: el delito de robo suele tener muchas repeticiones.
 
 # Soluciones alternas - Revisar folios repetidos
 df_freq  <- table(df_alternas$id_per_acusada)
-
-df_freq2 <- as.data.frame(table(df_freq)) %>% 
-                rename("Número de repeticiones" = df_freq, 
-                        "Observaciones" = Freq)
+df_freq2 <- as.data.frame(table(df_freq))
+print(df_freq2) # Frecuencia de repeticiones 
+        # Observaciones: aquí hay menos repeticiones, el que más se repite es 
+        # una persona que recibió 3 medidas cautelares para 2 delitos, por lo 
+        # que aparece 6 veces en total. 
 
 # Medidas cautelares - Revisar folios repetidos
 df_freq  <- table(df_cautelares$id_per_acusada)
+df_freq2 <- as.data.frame(table(df_freq)) 
+print(df_freq2) # Frecuencia de repeticiones 
 
-df_freq2 <- as.data.frame(table(df_freq)) %>% 
-                rename("Número de repeticiones" = df_freq, 
-                        "Observaciones" = Freq)
 
 # Sentencias - Revisar folios repetidos
 df_freq  <- table(df_sentencias$id_per_acusada)
-
-df_freq2 <- as.data.frame(table(df_freq)) %>% 
-                rename("Número de repeticiones" = df_freq, 
-                        "Observaciones" = Freq)
+df_freq2 <- as.data.frame(table(df_freq)) 
+print(df_freq2) # Frecuencia de repeticiones 
 
 # Aunque tengan los mismos datos en cada variable, no hay observaciones repetidas.
 # La documentación del TSJ-CDMX indica que cada renglón u observación es un 
@@ -234,7 +236,7 @@ df_freq2 <- as.data.frame(table(df_freq)) %>%
 # 2.4.1 Asuntos ingresados -----------------------------------------------------
 
 df_asuntos_renombrado1 <- df_asuntos %>% 
-        filter(year_ingreso != "2015")                                %>% # Filtrar 2015 
+        # filter(year_ingreso != "2015")                                %>% # Filtrar 2015 
         # Unificar categorías de homicidio y feminicidio en 1 
         mutate(homicidio_1 = as.numeric(str_detect(delito, "Homicidio")), 
                homicidio_2 = as.numeric(str_detect(delito, "Feminicidio")), 
@@ -285,22 +287,39 @@ df_asuntos_delitos <- df_asuntos_renombrado1 %>%
                 sexo_indiciada == "No especificado" ~ "No especificado" ))
 
 # Base final agregada por acusadosa
-#df_asuntos_vars_wide <- df_asuntos_delitos %>% 
+df_asuntos_vars_wide <- df_asuntos_delitos %>% 
         # Crear variables para consignación 
-        # Crear variables para comisión
+        mutate(c_con_detenido = as.numeric(str_detect(consignacion, "Con detenido")), 
+               c_sin_detenido = as.numeric(str_detect(consignacion, "Sin detenido"))) %>% 
+                # Crear variables para comisión
+        mutate(c_culposo = as.numeric(str_detect(comision, "Culposo")), 
+                c_doloso = as.numeric(str_detect(comision, "Doloso"))) %>% 
         # Crear variables para realización 
+        mutate(tr_consumado = as.numeric(str_detect(realizacion, "Consumado")), 
+                tr_tentativa =  as.numeric(str_detect(realizacion, "Tentativa")))        
 
 # Dadas las irregularidades, se pierde la información de consignación, comisión y 
 # realización, por ello, es necesario ponderar si también se tiene que hacer una 
-# variable binaria sobre el tema.
+# variable binaria sobre el tema. Por esto, en la limpieza siguiente no se puede 
+# agrupar por estas variables, dado que generan más observaciones de las que 
+# debería haber. 
 
-df_asuntos_acusados <- df_asuntos_delitos %>% 
+df_asuntos_acusados <- df_asuntos_vars_wide %>% 
         group_by(id_exp, id_per_acusada, year_ingreso, month_ingreso, edad_indiciada,
                 sexo_indiciada, materia) %>% 
         summarise(num_alcaldias = length(unique(alcaldia)), # Contabilizar alcaldías donde se cometieron delitos 
+        # Variables de conteo de consignación, comisión y realización 
                 num_consignacion = length(unique(consignacion)), 
                 num_comision = length(unique(comision)),
                 num_realizacion = length(unique(realizacion)),
+        # Variables binarias para consignación, comisión y realización 
+                #c_con_detenido = sum(c_con_detenido), 
+                #c_sin_detenido = sum(s_sin_detenido),
+                #c_culposo = sum(c_culposo), 
+                #c_doloso = sum(c_doloso), 
+                #tr_consumado = sum(tr_consumado), 
+                #tr_tentativa = sum(tr_tentativa),
+        # Variables binarias para delitos
                 homicidio = sum(homicidio), 
                 secuestro = sum(secuestro), 
                 sexuales = sum(sexuales), 
@@ -313,19 +332,22 @@ df_asuntos_acusados <- df_asuntos_delitos %>%
                 encubrimiento = sum(encubrimiento), 
                 otros = sum(otros)) %>% 
         ungroup() %>% 
+        # Crar contador para el total de delitos 
         mutate(num_delitos = homicidio + secuestro + sexuales + salud + robo +
                         familiar + lesiones + extorsion + objetos + 
                         encubrimiento + otros) %>% 
         mutate(base_asuntos = 1) 
-
 
 # Cuando sólo agrupamos por id_exp y id_per_acusada: 265102
 # Cuando agrupamos además con sexo, año y mes: 265134
         # Hay 32 observaciones adicionales, que se debe estar duplicando por una 
         # irregularidad en sexo, año o mes 
 
-df_freq_exp <- table(df_asuntos_acusados$id_exp)
-df_freq_per <- as.data.frame(table(df_asuntos_acusados$id_per_acusada))
+
+# Mostrar irregularidades en consignación, comisión y realización 
+table(df_asuntos_acusados$num_consignacion)
+table(df_asuntos_acusados$num_comision)
+table(df_asuntos_acusados$num_realizacion)
 
 
 # 2.4.2 Personas agredidas -----------------------------------------------------
@@ -375,11 +397,10 @@ df_personas_expediente <- df_personas_vars_wide %>%
 # si hago la unión con las personas agresoras se va a repetir cada vez en todos
 # los casos en los que haya más de una persona agresora. 
 
-df_freq_exp <- table(df_personas_expediente$id_exp) # No hay ningún expediente repetido
 
 # 2.4.3 Situación jurídica -----------------------------------------------------
 df_sitjurid_renombrado1 <- df_sitjurid %>% 
-        filter(year_resolucion != "2015")                                %>% # Filtrar 2015 
+        # filter(year_resolucion != "2015")                                %>% # Filtrar 2015 
         # Unificar categorías de homicidio y feminicidio en 1 
         mutate(homicidio_1 = as.numeric(str_detect(delito, "Homicidio")), 
                 homicidio_2 = as.numeric(str_detect(delito, "Feminicidio")), 
@@ -480,14 +501,9 @@ df_sitjurid_acusados <- df_sitjurid_vars_wide %>%
         mutate(base_sitjurid = 1)
 
 
-# Ver frecuencia de expedientes y personas 
-df_freq_exp <- table(df_sitjurid_acusados$id_exp)
-df_freq_per <- as.data.frame(table(df_sitjurid_acusados$id_per_acusada))
-
-
 # 2.4.4 Soluciones alternas -------------------------------------------------------
 df_alternas_renombrado1 <- df_alternas %>% 
-        filter(year_audiencia != "2015")                                %>% # Filtrar 2015 
+        # filter(year_audiencia != "2015")                                %>% # Filtrar 2015 
         # Unificar categorías de homicidio y feminicidio en 1 
         mutate(homicidio_1 = as.numeric(str_detect(delito, "Homicidio")), 
                 homicidio_2 = as.numeric(str_detect(delito, "Feminicidio")), 
@@ -582,15 +598,12 @@ df_alternas_acusados <- df_alternas_vars_wide %>%
                         encubrimiento + otros) %>% 
         mutate(base_sol_alternas = 1)
 
-# Ver frecuencia de expedientes y personas 
-df_freq_exp <- table(df_alternas_acusados$id_exp)
-df_freq_per <- as.data.frame(table(df_alternas_acusados$id_per_acusada)) # No se repiten personas :')
 
 
 # 2.4.5 Medidas cautelares -----------------------------------------------------
 # Crear variables binarias para los delitos
 df_cautelares_renombrado1 <- df_cautelares                              %>% 
-        filter(year_audiencia != "2015")                                %>% # Filtrar 2015 
+        # filter(year_audiencia != "2015")                                %>% # Filtrar 2015 
         # Unificar categorías de homicidio y feminicidio en 1 
         mutate(homicidio_1 = as.numeric(str_detect(delito, "Homicidio")), 
                homicidio_2 = as.numeric(str_detect(delito, "Feminicidio")), 
@@ -718,15 +731,11 @@ df_cautelares_acusados <- df_cautelares_vars_wide %>%
                         m_prision_preventiva) %>% 
         mutate(base_medida_cautelar = 1)
 
-# Ver frecuencia de expedientes y personas 
-df_freq_exp <- table(df_cautelares_acusados$id_exp)
-df_freq_per <- as.data.frame(table(df_cautelares_acusados$id_per_acusada)) # No se repiten personas :')
-
 
 # 2.4.6 Sentencias -------------------------------------------------------------
 # Crear variables binarias para los delitos
 df_sentencias_renombrado1 <- df_sentencias %>% 
-        filter(year_sentencia != "2015")                                %>% # Filtrar 2015 
+        # filter(year_sentencia != "2015")                                %>% # Filtrar 2015 
         # Unificar categorías de homicidio y feminicidio en 1 
         mutate(homicidio_1 = as.numeric(str_detect(delito, "Homicidio")), 
                 homicidio_2 = as.numeric(str_detect(delito, "Feminicidio")), 
@@ -784,7 +793,6 @@ df_sentencias_vars_wide <- df_sentencias_delitos %>%
                 sentencia_condenatoria = as.numeric(str_detect(sentencia, "Condenatoria")))
 
 
-
 # Base final desagregada por personas 
 df_sentencias_acusados <- df_sentencias_vars_wide %>% 
         group_by(id_exp, id_per_acusada, year_sentencia, month_sentencia, 
@@ -814,15 +822,50 @@ df_sentencias_acusados <- df_sentencias_vars_wide %>%
                         encubrimiento + otros) %>% 
         mutate(base_sentencias = 1)
 
-# Ver frecuencia de expedientes y personas 
+# En sentencia se perdió la información de años y meses de condena 
+# Hay veces en las que parece que se duplica el registro de la sentencia a una 
+# persona, pero la única diferencia es el mes de la sentencia. A veces sólo es 
+# un mes de distancia, ¿qué deberíamos interpretar de estas observaciones?
+
+
+# 3. Identificar folios repetidos ----------------------------------------------
+# Asuntos ingresados 
+df_freq_exp <- table(df_asuntos_acusados$id_exp)
+df_freq_per <- as.data.frame(table(df_asuntos_acusados$id_per_acusada))
+        table(df_freq_per$Freq) # Varias personas se repiten dos veces
+
+# Personas agredidas 
+df_freq_exp <- as.data.frame(table(df_personas_expediente$id_exp)) 
+        table(df_freq_exp$Freq) # No hay ninguna persona repetida
+
+# Situación jurídica 
+df_freq_exp <- table(df_sitjurid_acusados$id_exp)
+df_freq_per <- as.data.frame(table(df_sitjurid_acusados$id_per_acusada))
+        table(df_freq_per$Freq)  # Varias personas se repiten dos veces 
+
+# Soluciones alternas 
+df_freq_exp <- table(df_alternas_acusados$id_exp)
+df_freq_per <- as.data.frame(table(df_alternas_acusados$id_per_acusada)) # No se repiten personas :')
+        table(df_freq_per$Freq) # No hay ninguna persona repetida
+
+# Medidas cautelares 
+df_freq_exp <- table(df_cautelares_acusados$id_exp)
+df_freq_per <- as.data.frame(table(df_cautelares_acusados$id_per_acusada)) # No se repiten personas :')
+        table(df_freq_per$Freq) # Sólo dos se repiten y tienen expedientes de asunto distinto
+        
+# Sentencias 
 df_freq_exp <- table(df_sentencias_acusados$id_exp)
 df_freq_per <- as.data.frame(table(df_sentencias_acusados$id_per_acusada)) # No se repiten personas :')
+        table(df_freq_per$Freq)
 
-
-# Este folio único para persona está repetido: 2558706
+# Este folio único para persona está repetido en sentencias: 2558706
 # Pero al buscarlo en las bases aparecen edades distintas, como si se hubiera
 # utilizado para personas distintas 
 
+
+# Para hacer revisión si las personas repetidas sí son por momentos distintos, 
+# podría agrupar por identificador y crear variables contadoras para año y otras 
+# en donde se espere ver diferencias, como la materia 
 
 # 4. Guardar bases limpias -----------------------------------------------------
 
