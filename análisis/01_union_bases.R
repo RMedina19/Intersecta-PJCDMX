@@ -95,8 +95,7 @@ df_unida4 <- df_unida3 %>%
                         "num_consignacion", "num_comision", "num_realizacion", 
                         "homicidio", "secuestro", "sexuales", "salud", "robo", 
                         "familiar", "lesiones", "extorsion", "objetos", 
-                        "encubrimiento", "otros", "num_delitos", 
-                        "year_audiencia", "month_audiencia"))
+                        "encubrimiento", "otros", "num_delitos"))
 
 # Revisar frecuencia de expedientes
 df_freq_exp <- as.data.frame(table(df_unida4$id_exp))
@@ -124,13 +123,41 @@ df_freq_exp <- as.data.frame(table(df_unida5$id_exp))
 df_freq_per <- as.data.frame(table(df_unida5$id_per_acusada)) 
 table(df_freq_per$Freq)
 
-# 3. Seleccionar variables finales ---------------------------------------------
+
+
+# 5. Añadir variables de análisis ----------------------------------------------
+df_unida_extra <- df_unida5 %>% 
+        # Convertir NAs a 0 en variables binarias 
+        replace_na(list(base_asuntos = 0, 
+                        base_sitjurid = 0, 
+                        base_sol_alternas = 0, 
+                        base_medida_cautelar = 0, 
+                        base_sentencias = 0)) %>% 
+        # Crear variable de registro en todas las bases 
+        mutate(aparece_en_bases = base_asuntos      + base_sitjurid + 
+                                  base_sol_alternas + base_medida_cautelar + 
+                                  base_sentencias) %>% 
+        # Convertir en binarias las variables de conteo
+        #mutate() %>% 
+        # Crear variable binaria de terminación 
+        mutate(terminacion = base_sentencias +
+                        a_reparatorio + a_perdon + a_suspension + a_criterio +
+                        a_sobreseimiento + s_libertad_falta_elementos +
+                        s_no_vinculado) 
+        # Crear variable rápida de tipo de terminación 
+        mutate(tipo_terminacion)
+
+
+
+        
+        
+
+# 4. Seleccionar variables finales ---------------------------------------------
 
 v_delitos <- c("homicidio", "secuestro", "sexuales", "salud", "robo", "familiar", 
                 "lesiones", "extorsion", "objetos", "encubrimiento", "otros")
 
-df_unida <- df_unida5 %>% 
-        mutate(aparece_en_bases = base_asuntos + base_sitjurid + base_sol_alternas + base_medida_cautelar + base_sentencias) %>% 
+df_unida <- df_unida_extra %>% 
         select(materia,  # Materia penal 
                 starts_with("id_"), # Identificadores de expediente y personas
                 "aparece_en_bases", 
@@ -145,24 +172,26 @@ df_unida <- df_unida5 %>%
                 starts_with("v_"),
                 starts_with("r_"), 
                 # Delitos
-                v_delitos, 
+                all_of(v_delitos), 
                 starts_with("s_"), # Situación jurídica
                 starts_with("a_"), # Soluciones alternas
                 starts_with("m_"), # Medidas cautelares
                 starts_with("sentencia_")) # Sentencias 
 
 
+
+
 # 4. Controles de revisión -----------------------------------------------------
 # Folios que se repiten 
 # Ver frecuencia de expedientes y personas 
 df_freq_exp <- table(df_unida$id_exp)
-df_freq_per <- as.data.frame(table(df_unida$id_per_acusada)) # No se repiten personas :')
+df_freq_per <- as.data.frame(table(df_unida$id_per_acusada))
 table(df_freq_per$Freq) # Frecuencia de folios únicos por persona
 
 
 # Número total de observaciones por base
 dim(df_asuntos_ingresados_nivel_acusado)
-dim(df_personas_agredidas)
+dim(df_personas_agredidas_nivel_expediente)
 dim(df_situacion_juridica_nivel_acusado)
 dim(df_soluciones_alternas_nivel_acusado)
 dim(df_medidas_cautelares_nivel_acusado)
