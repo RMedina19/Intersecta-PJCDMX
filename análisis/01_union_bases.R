@@ -3,7 +3,7 @@
 # Encargada:                    Regina Isabel Medina Rosales
 # Correo:                       rmedina@intersecta.org
 # Fecha de creación:            27 de enero de 2021
-# Última actualización:         27 de enero de 2021
+# Última actualización:         02 de febrero de 2021
 #------------------------------------------------------------------------------#
 
 # 0. Configuración inicial -----------------------------------------------------
@@ -145,7 +145,7 @@ df_unida_extra <- df_unida5 %>%
                         a_sobreseimiento + s_libertad_falta_elementos +
                         s_no_vinculado) 
         # Crear variable rápida de tipo de terminación 
-        mutate(tipo_terminacion)
+        #mutate(tipo_terminacion)
 
 
 
@@ -209,7 +209,6 @@ save(df_TJCDMX, file = paste0(out, "df_TJCDMX.RData"))
 
 # Guardar formato csv
 write.csv(df_TJCDMX, file = paste0(out, "df_TJCDMX.csv"))
-
 
 
 
