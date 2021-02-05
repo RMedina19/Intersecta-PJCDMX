@@ -12,7 +12,7 @@
 
 # Librerías 
 require(pacman)
-p_load(readxl, tidyverse, dplyr, here, beepr)
+p_load(readxl, tidyverse, dplyr, here, lubridate, zoo, beepr)
 
 # Limpiar espacio de trabajo 
 rm(list=ls())
@@ -56,19 +56,19 @@ df_sentencias_crudo    <- read_excel(paste0(inp, "F227220_081220 INFOMEX.xlsx"),
 # 2. Limpiar datos -------------------------------------------------------------
 # 2.1 Renombrar variables ------------------------------------------------------
 df_asuntos <- df_asuntos_crudo          %>% 
-        rename(materia           = "Materia", 
-                id_exp           = "Indice para agrupación 1\r\n\r\n(Expediente / Carpeta)", 
-                id_per_acusada   = "Indice para agrupación 2\r\n\r\n(Personas)", 
-                year_ingreso     = "Año ingreso", 
-                month_ingreso    = "Mes ingreso", 
-                sexo_indiciada   = "Sexo de la persona indiciada", 
-                edad_indiciada   = "Edad de la persona indiciada",
-                delito           = "Tipo delictivo", 
-                desag_estad      = "Desagregado estadístico", 
-                consignacion     = "Consignacion", 
-                comision         = "Comisión", 
-                realizacion      = "Realización", 
-                alcaldia         = "Alcaldía de ocurrencia") %>% 
+        rename(materia               = "Materia", 
+                id_exp               = "Indice para agrupación 1\r\n\r\n(Expediente / Carpeta)", 
+                id_per_acusada       = "Indice para agrupación 2\r\n\r\n(Personas)", 
+                year_ingreso         = "Año ingreso", 
+                month_ingreso        = "Mes ingreso", 
+                sexo_indiciada       = "Sexo de la persona indiciada", 
+                edad_indiciada       = "Edad de la persona indiciada",
+                delito               = "Tipo delictivo", 
+                desag_estad          = "Desagregado estadístico", 
+                consignacion         = "Consignacion", 
+                comision             = "Comisión", 
+                realizacion          = "Realización", 
+                alcaldia             = "Alcaldía de ocurrencia") %>% 
         mutate(consignacion = case_when(consignacion == "con detenido" ~ "Con detenido", 
                                         consignacion == "sin detenido" ~ "Sin detenido", 
                                         consignacion == consignacion ~ consignacion)) 
@@ -240,35 +240,35 @@ df_asuntos_renombrado1 <- df_asuntos %>%
         # Unificar categorías de homicidio y feminicidio en 1 
         mutate(homicidio_1 = as.numeric(str_detect(delito, "Homicidio")), 
                homicidio_2 = as.numeric(str_detect(delito, "Feminicidio")), 
-                d_asunto_homicidio   = homicidio_1 + homicidio_2)                 %>% 
+                d_homicidio_asunto   = homicidio_1 + homicidio_2)                 %>% 
         # Unificar categorías para secuestros 
         mutate(secuestro_1 = as.numeric(str_detect(delito, "Secuestro")), 
                 secuestro_2 = as.numeric(str_detect(delito, "Privación de la libertad")), 
-                d_asunto_secuestro   = secuestro_1 + secuestro_2)                 %>% 
+                d_secuestro_asunto   = secuestro_1 + secuestro_2)                 %>% 
         # Unificar categorías para delitos sexuales
         mutate(sexuales_1  = as.numeric(str_detect(delito, "Abuso sexual")), 
                sexuales_2  = as.numeric(str_detect(delito, "Violacion")), 
                sexuales_3  = as.numeric(str_detect(delito, "Hostigamiento")), 
-                d_asunto_sexuales    = sexuales_1 + sexuales_2 + sexuales_3)      %>% 
+                d_sexuales_asunto    = sexuales_1 + sexuales_2 + sexuales_3)      %>% 
         # Crear variables dummies para otros delitos
-        mutate(d_asunto_salud       = as.numeric(str_detect(delito, "salud")),
-               d_asunto_robo        = as.numeric(str_detect(delito, "Robo")), 
-               d_asunto_familiar    = as.numeric(str_detect(delito, "Violencia familiar")), 
-               d_asunto_lesiones    = as.numeric(str_detect(delito, "Lesiones")),
-               d_asunto_extorsion   = as.numeric(str_detect(delito, "Extorsion")), 
-               d_asunto_objetos     = as.numeric(str_detect(delito, "Portación de objetos")), 
-                d_asunto_encubrimiento = as.numeric(str_detect(delito, "Encubrimiento"))) %>% 
+        mutate(d_salud_asunto       = as.numeric(str_detect(delito, "salud")),
+               d_robo_asunto        = as.numeric(str_detect(delito, "Robo")), 
+               d_familiar_asunto    = as.numeric(str_detect(delito, "Violencia familiar")), 
+               d_lesiones_asunto    = as.numeric(str_detect(delito, "Lesiones")),
+               d_extorsion_asunto   = as.numeric(str_detect(delito, "Extorsion")), 
+               d_objetos_asunto     = as.numeric(str_detect(delito, "objetos")), 
+                d_encubrimiento_asunto = as.numeric(str_detect(delito, "Encubrimiento"))) %>% 
         # Crear categoría para el resto de los delitos 
-        mutate(d_asunto_otros = ifelse(d_asunto_homicidio  != 1 & 
-                                        d_asunto_salud     != 1 & 
-                                        d_asunto_robo != 1 & 
-                                        d_asunto_familiar  != 1 & 
-                                        d_asunto_lesiones != 1 & 
-                                        d_asunto_encubrimiento != 1 &
-                                        d_asunto_extorsion != 1 & 
-                                        d_asunto_objetos  != 1 & 
-                                        d_asunto_secuestro != 1 & 
-                                        d_asunto_sexuales  != 1, 1, 0)) %>% 
+        mutate(d_otros_asunto = ifelse(d_homicidio_asunto  != 1 & 
+                                        d_salud_asunto     != 1 & 
+                                        d_robo_asunto != 1 & 
+                                        d_familiar_asunto  != 1 & 
+                                        d_lesiones_asunto != 1 & 
+                                        d_encubrimiento_asunto != 1 &
+                                        d_extorsion_asunto != 1 & 
+                                        d_objetos_asunto  != 1 & 
+                                        d_secuestro_asunto != 1 & 
+                                        d_sexuales_asunto  != 1, 1, 0)) %>% 
         # Retirar variables innecesarias 
         dplyr::select(-c(homicidio_1, homicidio_2, secuestro_1, secuestro_2,
                 sexuales_1, sexuales_2, sexuales_3)) 
@@ -276,21 +276,25 @@ df_asuntos_renombrado1 <- df_asuntos %>%
 # Crear nueva variable con nombres cortos de los delitos 
 # Base final por delitos 
 df_asuntos_delitos <- df_asuntos_renombrado1 %>% 
-        mutate(delitos_cortos = case_when(d_asunto_homicidio == 1 ~ "Homicidio",
-               d_asunto_salud     == 1 ~ "Delitos contra la salud",
-               d_asunto_robo      == 1 ~ "Robo",
-               d_asunto_familiar  == 1 ~ "Violencia familiar",
-               d_asunto_lesiones  == 1 ~ "Lesiones",
-               d_asunto_encubrimiento == 1 ~ "Encubrimiento",
-               d_asunto_extorsion == 1 ~ "Extorsión",
-               d_asunto_objetos   == 1 ~ "Portación de objetos aptos para agredir",
-               d_asunto_secuestro == 1 ~ "Secuestro",
-               d_asunto_sexuales  == 1 ~ "Delitos sexuales",
-               d_asunto_otros     == 1 ~ "Otros delitos")) %>% 
+        mutate(delitos_cortos = case_when(d_homicidio_asunto == 1 ~ "Homicidio",
+               d_salud_asunto     == 1 ~ "Delitos contra la salud",
+               d_robo_asunto      == 1 ~ "Robo",
+               d_familiar_asunto  == 1 ~ "Violencia familiar",
+               d_lesiones_asunto  == 1 ~ "Lesiones",
+               d_encubrimiento_asunto == 1 ~ "Encubrimiento",
+               d_extorsion_asunto == 1 ~ "Extorsión",
+               d_objetos_asunto   == 1 ~ "objetos aptos para agredir",
+               d_secuestro_asunto == 1 ~ "Secuestro",
+               d_sexuales_asunto  == 1 ~ "Delitos sexuales",
+               d_otros_asunto     == 1 ~ "Otros delitos")) %>% 
         # Renombrar variable de sexo 
         mutate(sexo_indiciada = case_when(sexo_indiciada == "Femenino" ~ "Mujeres", 
                 sexo_indiciada == "Masculino" ~ "Hombres", 
-                sexo_indiciada == "No especificado" ~ "No especificado" ))
+                sexo_indiciada == "No especificado" ~ "No especificado" )) %>% 
+        # Crear variable de fecha con objeto tipo date 
+        mutate(date_ingreso = paste(year_ingreso, month_ingreso, sep = "-"), 
+                date_ingreso = as.yearmon(date_ingreso))
+
 
 # Base final agregada por acusadosa
 df_asuntos_vars_wide <- df_asuntos_delitos %>% 
@@ -311,8 +315,8 @@ df_asuntos_vars_wide <- df_asuntos_delitos %>%
 # debería haber. 
 
 df_asuntos_wide_summed <- df_asuntos_vars_wide %>% 
-        group_by(id_exp, id_per_acusada, year_ingreso, month_ingreso, edad_indiciada,
-                sexo_indiciada, materia) %>% 
+        group_by(id_exp, id_per_acusada, year_ingreso, month_ingreso, 
+                date_ingreso, edad_indiciada, sexo_indiciada, materia) %>% 
         summarise(num_alcaldias    = length(unique(alcaldia)), # Contabilizar alcaldías donde se cometieron delitos 
         # Variables de conteo de consignación, comisión y realización 
                 num_consignacion   = length(unique(consignacion)), 
@@ -326,24 +330,24 @@ df_asuntos_wide_summed <- df_asuntos_vars_wide %>%
                 tr_consumado      = sum(tr_consumado), 
                 tr_tentativa      = sum(tr_tentativa),
         # Variables de conteo para delitos
-                d_asunto_homicidio          = sum(d_asunto_homicidio), 
-                d_asunto_secuestro          = sum(d_asunto_secuestro), 
-                d_asunto_sexuales           = sum(d_asunto_sexuales), 
-                d_asunto_salud              = sum(d_asunto_salud), 
-                d_asunto_robo               = sum(d_asunto_robo), 
-                d_asunto_familiar           = sum(d_asunto_familiar), 
-                d_asunto_lesiones           = sum(d_asunto_lesiones), 
-                d_asunto_extorsion          = sum(d_asunto_extorsion), 
-                d_asunto_objetos            = sum(d_asunto_objetos), 
-                d_asunto_encubrimiento      = sum(d_asunto_encubrimiento), 
-                d_asunto_otros              = sum(d_asunto_otros)) %>% 
+                d_homicidio_asunto          = sum(d_homicidio_asunto), 
+                d_secuestro_asunto          = sum(d_secuestro_asunto), 
+                d_sexuales_asunto           = sum(d_sexuales_asunto), 
+                d_salud_asunto              = sum(d_salud_asunto), 
+                d_robo_asunto               = sum(d_robo_asunto), 
+                d_familiar_asunto           = sum(d_familiar_asunto), 
+                d_lesiones_asunto           = sum(d_lesiones_asunto), 
+                d_extorsion_asunto          = sum(d_extorsion_asunto), 
+                d_objetos_asunto            = sum(d_objetos_asunto), 
+                d_encubrimiento_asunto      = sum(d_encubrimiento_asunto), 
+                d_otros_asunto              = sum(d_otros_asunto)) %>% 
         ungroup() %>% 
         # Crar contador para el total de delitos 
-        mutate(num_delitos = d_asunto_homicidio + d_asunto_secuestro + 
-                        d_asunto_sexuales + d_asunto_salud + d_asunto_robo +
-                        d_asunto_familiar + d_asunto_lesiones + 
-                        d_asunto_extorsion + d_asunto_objetos + 
-                        d_asunto_encubrimiento + d_asunto_otros) %>% 
+        mutate(num_delitos = d_homicidio_asunto + d_secuestro_asunto + 
+                        d_sexuales_asunto + d_salud_asunto + d_robo_asunto +
+                        d_familiar_asunto + d_lesiones_asunto + 
+                        d_extorsion_asunto + d_objetos_asunto + 
+                        d_encubrimiento_asunto + d_otros_asunto) %>% 
         mutate(base_asuntos = 1) 
 
 # Variables de conteo a indicadores binarios 
@@ -355,17 +359,17 @@ df_asuntos_acusados <- df_asuntos_wide_summed %>%
                 tr_consumado   = if_else(tr_consumado == 0, 0, 1),
                 tr_tentativa   = if_else(tr_tentativa == 0, 0, 1),
         # Indicadores binarios para delitos 
-                d_asunto_homicidio     = if_else(d_asunto_homicidio == 0, 0, 1), 
-                d_asunto_secuestro     = if_else(d_asunto_secuestro == 0, 0, 1), 
-                d_asunto_sexuales      = if_else(d_asunto_sexuales == 0, 0, 1), 
-                d_asunto_salud         = if_else(d_asunto_salud == 0, 0, 1), 
-                d_asunto_robo          = if_else(d_asunto_robo == 0, 0, 1), 
-                d_asunto_familiar      = if_else(d_asunto_familiar == 0, 0, 1), 
-                d_asunto_lesiones      = if_else(d_asunto_lesiones == 0, 0, 1), 
-                d_asunto_extorsion     = if_else(d_asunto_extorsion == 0, 0, 1), 
-                d_asunto_objetos       = if_else(d_asunto_objetos == 0, 0, 1), 
-                d_asunto_encubrimiento = if_else(d_asunto_encubrimiento == 0, 0, 1), 
-                d_asunto_otros         = if_else(d_asunto_otros == 0, 0, 1)) 
+                d_homicidio_asunto     = if_else(d_homicidio_asunto == 0, 0, 1), 
+                d_secuestro_asunto     = if_else(d_secuestro_asunto == 0, 0, 1), 
+                d_sexuales_asunto      = if_else(d_sexuales_asunto == 0, 0, 1), 
+                d_salud_asunto         = if_else(d_salud_asunto == 0, 0, 1), 
+                d_robo_asunto          = if_else(d_robo_asunto == 0, 0, 1), 
+                d_familiar_asunto      = if_else(d_familiar_asunto == 0, 0, 1), 
+                d_lesiones_asunto      = if_else(d_lesiones_asunto == 0, 0, 1), 
+                d_extorsion_asunto     = if_else(d_extorsion_asunto == 0, 0, 1), 
+                d_objetos_asunto       = if_else(d_objetos_asunto == 0, 0, 1), 
+                d_encubrimiento_asunto = if_else(d_encubrimiento_asunto == 0, 0, 1), 
+                d_otros_asunto         = if_else(d_otros_asunto == 0, 0, 1)) 
 
 # Cuando sólo agrupamos por id_exp y id_per_acusada: 265102
 # Cuando agrupamos además con sexo, año y mes: 265134
@@ -426,30 +430,30 @@ df_sitjurid_renombrado1 <- df_sitjurid %>%
         # Unificar categorías de homicidio y feminicidio en 1 
         mutate(homicidio_1 = as.numeric(str_detect(delito, "Homicidio")), 
                 homicidio_2 = as.numeric(str_detect(delito, "Feminicidio")), 
-                d_sitjurid_homicidio   = homicidio_1 + homicidio_2)                 %>% 
+                d_homicidio_sitjurid   = homicidio_1 + homicidio_2)                 %>% 
         # Unificar categorías para secuestros 
         mutate(secuestro_1 = as.numeric(str_detect(delito, "Secuestro")), 
                 secuestro_2 = as.numeric(str_detect(delito, "Privación de la libertad")), 
-                d_sitjurid_secuestro   = secuestro_1 + secuestro_2)                 %>% 
+                d_secuestro_sitjurid   = secuestro_1 + secuestro_2)                 %>% 
         # Unificar categorías para delitos sexuales
         mutate(sexuales_1  = as.numeric(str_detect(delito, "Abuso sexual")), 
                 sexuales_2  = as.numeric(str_detect(delito, "Violacion")), 
                 sexuales_3  = as.numeric(str_detect(delito, "Hostigamiento")), 
-                d_sitjurid_sexuales    = sexuales_1 + sexuales_2 + sexuales_3)      %>% 
+                d_sexuales_sitjurid    = sexuales_1 + sexuales_2 + sexuales_3)      %>% 
         # Crear variables dummies para otros delitos
-        mutate(d_sitjurid_salud       = as.numeric(str_detect(delito, "salud")),
-                d_sitjurid_robo        = as.numeric(str_detect(delito, "Robo")), 
-                d_sitjurid_familiar    = as.numeric(str_detect(delito, "Violencia familiar")), 
-                d_sitjurid_lesiones    = as.numeric(str_detect(delito, "Lesiones")),
-                d_sitjurid_extorsion   = as.numeric(str_detect(delito, "Extorsion")), 
-                d_sitjurid_objetos     = as.numeric(str_detect(delito, "Portación de objetos")), 
-                d_sitjurid_encubrimiento = as.numeric(str_detect(delito, "Encubrimiento"))) %>% 
+        mutate(d_salud_sitjurid       = as.numeric(str_detect(delito, "salud")),
+                d_robo_sitjurid        = as.numeric(str_detect(delito, "Robo")), 
+                d_familiar_sitjurid    = as.numeric(str_detect(delito, "Violencia familiar")), 
+                d_lesiones_sitjurid    = as.numeric(str_detect(delito, "Lesiones")),
+                d_extorsion_sitjurid   = as.numeric(str_detect(delito, "Extorsion")), 
+                d_objetos_sitjurid     = as.numeric(str_detect(delito, "objetos")), 
+                d_encubrimiento_sitjurid = as.numeric(str_detect(delito, "Encubrimiento"))) %>% 
         # Crear categoría para el resto de los delitos 
-        mutate(d_sitjurid_otros = ifelse(d_sitjurid_homicidio != 1 & d_sitjurid_salud != 1    & 
-                        d_sitjurid_robo      != 1 & d_sitjurid_familiar  != 1 & 
-                        d_sitjurid_lesiones  != 1 & d_sitjurid_encubrimiento != 1 &
-                        d_sitjurid_extorsion != 1 & d_sitjurid_objetos  != 1 & 
-                        d_sitjurid_secuestro != 1 & d_sitjurid_sexuales  != 1, 1, 0)) %>% 
+        mutate(d_otros_sitjurid = ifelse(d_homicidio_sitjurid != 1 & d_salud_sitjurid != 1    & 
+                        d_robo_sitjurid      != 1 & d_familiar_sitjurid  != 1 & 
+                        d_lesiones_sitjurid  != 1 & d_encubrimiento_sitjurid != 1 &
+                        d_extorsion_sitjurid != 1 & d_objetos_sitjurid  != 1 & 
+                        d_secuestro_sitjurid != 1 & d_sexuales_sitjurid  != 1, 1, 0)) %>% 
         # Retirar variables innecesarias 
         dplyr::select(-c(homicidio_1, homicidio_2, secuestro_1, secuestro_2,
                 sexuales_1, sexuales_2, sexuales_3)) 
@@ -460,21 +464,25 @@ df_sitjurid_renombrado2 <- df_sitjurid_renombrado1 %>%
 
 # Crear nueva variable con nombres cortos de los delitos                        
 df_sitjurid_delitos <- df_sitjurid_renombrado2 %>% 
-        mutate(delitos_cortos = case_when(d_sitjurid_homicidio == 1 ~ "Homicidio",
-                d_sitjurid_salud     == 1 ~ "Delitos contra la salud",
-                d_sitjurid_robo      == 1 ~ "Robo",
-                d_sitjurid_familiar  == 1 ~ "Violencia familiar",
-                d_sitjurid_lesiones  == 1 ~ "Lesiones",
-                d_sitjurid_encubrimiento == 1 ~ "Encubrimiento",
-                d_sitjurid_extorsion == 1 ~ "Extorsión",
-                d_sitjurid_objetos   == 1 ~ "Portación de objetos aptos para agredir",
-                d_sitjurid_secuestro == 1 ~ "Secuestro",
-                d_sitjurid_sexuales  == 1 ~ "Delitos sexuales",
-                d_sitjurid_otros     == 1 ~ "Otros delitos")) %>% 
+        mutate(delitos_cortos = case_when(d_homicidio_sitjurid == 1 ~ "Homicidio",
+                d_salud_sitjurid     == 1 ~ "Delitos contra la salud",
+                d_robo_sitjurid      == 1 ~ "Robo",
+                d_familiar_sitjurid  == 1 ~ "Violencia familiar",
+                d_lesiones_sitjurid  == 1 ~ "Lesiones",
+                d_encubrimiento_sitjurid == 1 ~ "Encubrimiento",
+                d_extorsion_sitjurid == 1 ~ "Extorsión",
+                d_objetos_sitjurid   == 1 ~ "objetos aptos para agredir",
+                d_secuestro_sitjurid == 1 ~ "Secuestro",
+                d_sexuales_sitjurid  == 1 ~ "Delitos sexuales",
+                d_otros_sitjurid     == 1 ~ "Otros delitos")) %>% 
         # Renombrar variable de sexo 
         mutate(sexo_procesada = case_when(sexo_procesada == "Femenino" ~ "Mujeres", 
                 sexo_procesada == "Masculino" ~ "Hombres", 
-                sexo_procesada == "No especificado" ~ "No especificado" ))
+                sexo_procesada == "No especificado" ~ "No especificado" )) %>% 
+        # Crear variable de fecha con objeto tipo date 
+        mutate(date_resolucion = paste(year_resolucion, month_resolucion, sep = "-"), 
+                date_resolucion = as.yearmon(date_resolucion))
+
 
 # Crear variables binarias para situación jurídica ("s_" como sufijo de situación jurídica)
 df_sitjurid_vars_wide <- df_sitjurid_delitos %>% 
@@ -502,7 +510,7 @@ df_sitjurid_vars_wide <- df_sitjurid_delitos %>%
 # Base final desagregada por acusados 
 df_sitjurid_wide_summed <- df_sitjurid_vars_wide %>% 
         group_by(id_exp, id_per_acusada, year_resolucion, month_resolucion, 
-                edad_procesada, sexo_procesada, materia) %>% 
+                date_resolucion, edad_procesada, sexo_procesada, materia) %>% 
         # Contabilizar alcaldías donde se cometieron delitos 
         summarise(num_alcaldias              = length(unique(alcaldia)), 
                   num_consignacion           = length(unique(consignacion)), 
@@ -516,17 +524,17 @@ df_sitjurid_wide_summed <- df_sitjurid_vars_wide %>%
                   tr_consumado               = sum(tr_consumado), 
                   tr_tentativa               = sum(tr_tentativa),
         # Delitos 
-                  d_sitjurid_homicidio       = sum(d_sitjurid_homicidio), 
-                  d_sitjurid_secuestro       = sum(d_sitjurid_secuestro), 
-                  d_sitjurid_sexuales        = sum(d_sitjurid_sexuales), 
-                  d_sitjurid_salud           = sum(d_sitjurid_salud), 
-                  d_sitjurid_robo            = sum(d_sitjurid_robo), 
-                  d_sitjurid_familiar        = sum(d_sitjurid_familiar), 
-                  d_sitjurid_lesiones        = sum(d_sitjurid_lesiones), 
-                  d_sitjurid_extorsion       = sum(d_sitjurid_extorsion), 
-                  d_sitjurid_objetos         = sum(d_sitjurid_objetos), 
-                  d_sitjurid_encubrimiento   = sum(d_sitjurid_encubrimiento), 
-                  d_sitjurid_otros           = sum(d_sitjurid_otros), 
+                  d_homicidio_sitjurid       = sum(d_homicidio_sitjurid), 
+                  d_secuestro_sitjurid       = sum(d_secuestro_sitjurid), 
+                  d_sexuales_sitjurid        = sum(d_sexuales_sitjurid), 
+                  d_salud_sitjurid           = sum(d_salud_sitjurid), 
+                  d_robo_sitjurid            = sum(d_robo_sitjurid), 
+                  d_familiar_sitjurid        = sum(d_familiar_sitjurid), 
+                  d_lesiones_sitjurid        = sum(d_lesiones_sitjurid), 
+                  d_extorsion_sitjurid       = sum(d_extorsion_sitjurid), 
+                  d_objetos_sitjurid         = sum(d_objetos_sitjurid), 
+                  d_encubrimiento_sitjurid   = sum(d_encubrimiento_sitjurid), 
+                  d_otros_sitjurid           = sum(d_otros_sitjurid), 
         # Situación jurídica 
                   s_formal_prision           = sum(s_formal_prision), 
                   s_libertad_falta_elementos = sum(s_libertad_falta_elementos), 
@@ -536,12 +544,12 @@ df_sitjurid_wide_summed <- df_sitjurid_vars_wide %>%
                   s_sujecion_en_libertad     = sum(s_sujecion_en_libertad), 
                   s_vinculado_proceso        = sum(s_vinculado_proceso))  %>% 
         ungroup() %>%     
-        mutate(num_delitos = d_sitjurid_homicidio + d_sitjurid_secuestro + 
-                             d_sitjurid_sexuales  + d_sitjurid_salud + 
-                             d_sitjurid_robo      + d_sitjurid_familiar  + 
-                             d_sitjurid_lesiones  + d_sitjurid_extorsion + 
-                             d_sitjurid_objetos   + d_sitjurid_encubrimiento + 
-                             d_sitjurid_otros) %>% 
+        mutate(num_delitos = d_homicidio_sitjurid + d_secuestro_sitjurid + 
+                             d_sexuales_sitjurid  + d_salud_sitjurid + 
+                             d_robo_sitjurid      + d_familiar_sitjurid  + 
+                             d_lesiones_sitjurid  + d_extorsion_sitjurid + 
+                             d_objetos_sitjurid   + d_encubrimiento_sitjurid + 
+                             d_otros_sitjurid) %>% 
         mutate(base_sitjurid = 1)
 
 # Variables de conteo a indicadores binarios 
@@ -553,17 +561,17 @@ df_sitjurid_acusados <- df_sitjurid_wide_summed %>%
                 tr_consumado   = if_else(tr_consumado == 0, 0, 1),
                 tr_tentativa   = if_else(tr_tentativa == 0, 0, 1),
                 # Indicadores binarios para delitos 
-                d_sitjurid_homicidio     = if_else(d_sitjurid_homicidio == 0, 0, 1), 
-                d_sitjurid_secuestro     = if_else(d_sitjurid_secuestro == 0, 0, 1), 
-                d_sitjurid_sexuales      = if_else(d_sitjurid_sexuales == 0, 0, 1), 
-                d_sitjurid_salud         = if_else(d_sitjurid_salud == 0, 0, 1), 
-                d_sitjurid_robo          = if_else(d_sitjurid_robo == 0, 0, 1), 
-                d_sitjurid_familiar      = if_else(d_sitjurid_familiar == 0, 0, 1), 
-                d_sitjurid_lesiones      = if_else(d_sitjurid_lesiones == 0, 0, 1), 
-                d_sitjurid_extorsion     = if_else(d_sitjurid_extorsion == 0, 0, 1), 
-                d_sitjurid_objetos       = if_else(d_sitjurid_objetos == 0, 0, 1), 
-                d_sitjurid_encubrimiento = if_else(d_sitjurid_encubrimiento == 0, 0, 1), 
-                d_sitjurid_otros         = if_else(d_sitjurid_otros == 0, 0, 1)) 
+                d_homicidio_sitjurid     = if_else(d_homicidio_sitjurid == 0, 0, 1), 
+                d_secuestro_sitjurid     = if_else(d_secuestro_sitjurid == 0, 0, 1), 
+                d_sexuales_sitjurid      = if_else(d_sexuales_sitjurid == 0, 0, 1), 
+                d_salud_sitjurid         = if_else(d_salud_sitjurid == 0, 0, 1), 
+                d_robo_sitjurid          = if_else(d_robo_sitjurid == 0, 0, 1), 
+                d_familiar_sitjurid      = if_else(d_familiar_sitjurid == 0, 0, 1), 
+                d_lesiones_sitjurid      = if_else(d_lesiones_sitjurid == 0, 0, 1), 
+                d_extorsion_sitjurid     = if_else(d_extorsion_sitjurid == 0, 0, 1), 
+                d_objetos_sitjurid       = if_else(d_objetos_sitjurid == 0, 0, 1), 
+                d_encubrimiento_sitjurid = if_else(d_encubrimiento_sitjurid == 0, 0, 1), 
+                d_otros_sitjurid         = if_else(d_otros_sitjurid == 0, 0, 1)) 
 
 
 # 2.4.4 Soluciones alternas -------------------------------------------------------
@@ -571,30 +579,30 @@ df_alternas_renombrado1 <- df_alternas %>%
         # Unificar categorías de homicidio y feminicidio en 1 
         mutate(homicidio_1 = as.numeric(str_detect(delito, "Homicidio")), 
                homicidio_2 = as.numeric(str_detect(delito, "Feminicidio")), 
-               d_alternas_homicidio   = homicidio_1 + homicidio_2)                 %>% 
+               d_homicidio_alternas   = homicidio_1 + homicidio_2)                 %>% 
         # Unificar categorías para secuestros 
         mutate(secuestro_1 = as.numeric(str_detect(delito, "Secuestro")), 
                secuestro_2 = as.numeric(str_detect(delito, "Privación de la libertad")), 
-                d_alternas_secuestro   = secuestro_1 + secuestro_2)                 %>% 
+                d_secuestro_alternas   = secuestro_1 + secuestro_2)                 %>% 
         # Unificar categorías para delitos sexuales
         mutate(sexuales_1  = as.numeric(str_detect(delito, "Abuso sexual")), 
                sexuales_2  = as.numeric(str_detect(delito, "Violacion")), 
                sexuales_3  = as.numeric(str_detect(delito, "Hostigamiento")), 
-                d_alternas_sexuales    = sexuales_1 + sexuales_2 + sexuales_3)      %>% 
+                d_sexuales_alternas    = sexuales_1 + sexuales_2 + sexuales_3)      %>% 
         # Crear variables dummies para otros delitos
-        mutate(d_alternas_salud       = as.numeric(str_detect(delito, "salud")),
-               d_alternas_robo        = as.numeric(str_detect(delito, "Robo")), 
-               d_alternas_familiar    = as.numeric(str_detect(delito, "Violencia familiar")), 
-               d_alternas_lesiones    = as.numeric(str_detect(delito, "Lesiones")),
-               d_alternas_extorsion   = as.numeric(str_detect(delito, "Extorsion")), 
-               d_alternas_objetos     = as.numeric(str_detect(delito, "Portación de objetos")), 
-                d_alternas_encubrimiento = as.numeric(str_detect(delito, "Encubrimiento"))) %>% 
+        mutate(d_salud_alternas       = as.numeric(str_detect(delito, "salud")),
+               d_robo_alternas        = as.numeric(str_detect(delito, "Robo")), 
+               d_familiar_alternas    = as.numeric(str_detect(delito, "Violencia familiar")), 
+               d_lesiones_alternas    = as.numeric(str_detect(delito, "Lesiones")),
+               d_extorsion_alternas   = as.numeric(str_detect(delito, "Extorsion")), 
+               d_objetos_alternas     = as.numeric(str_detect(delito, "objetos")), 
+                d_encubrimiento_alternas = as.numeric(str_detect(delito, "Encubrimiento"))) %>% 
         # Crear categoría para el resto de los delitos 
-        mutate(d_alternas_otros = ifelse(d_alternas_homicidio != 1 & d_alternas_salud != 1    & 
-                              d_alternas_robo != 1 & d_alternas_familiar  != 1 & 
-                              d_alternas_lesiones != 1 & d_alternas_encubrimiento != 1 &
-                              d_alternas_extorsion != 1 & d_alternas_objetos  != 1 & 
-                              d_alternas_secuestro != 1 & d_alternas_sexuales  != 1, 1, 0)) %>% 
+        mutate(d_otros_alternas = ifelse(d_homicidio_alternas != 1 & d_salud_alternas != 1    & 
+                              d_robo_alternas != 1 & d_familiar_alternas  != 1 & 
+                              d_lesiones_alternas != 1 & d_encubrimiento_alternas != 1 &
+                              d_extorsion_alternas != 1 & d_objetos_alternas  != 1 & 
+                              d_secuestro_alternas != 1 & d_sexuales_alternas  != 1, 1, 0)) %>% 
         # Retirar variables innecesarias 
         dplyr::select(-c(homicidio_1, homicidio_2, secuestro_1, secuestro_2,
                 sexuales_1, sexuales_2, sexuales_3)) 
@@ -606,21 +614,25 @@ df_alternas_renombrado2 <- df_alternas_renombrado1 %>%
 
 # Crear nueva variable con nombres cortos de los delitos                        
 df_alternas_delitos <- df_alternas_renombrado2 %>% 
-        mutate(delitos_cortos = case_when(d_alternas_homicidio == 1 ~ "Homicidio",
-               d_alternas_salud          == 1 ~ "Delitos contra la salud",
-               d_alternas_robo           == 1 ~ "Robo",
-               d_alternas_familiar       == 1 ~ "Violencia familiar",
-               d_alternas_lesiones       == 1 ~ "Lesiones",
-               d_alternas_encubrimiento  == 1 ~ "Encubrimiento",
-               d_alternas_extorsion      == 1 ~ "Extorsión",
-               d_alternas_objetos        == 1 ~ "Portación de objetos aptos para agredir",
-               d_alternas_secuestro      == 1 ~ "Secuestro",
-               d_alternas_sexuales       == 1 ~ "Delitos sexuales",
-               d_alternas_otros          == 1 ~ "Otros delitos")) %>% 
+        mutate(delitos_cortos = case_when(d_homicidio_alternas == 1 ~ "Homicidio",
+               d_salud_alternas          == 1 ~ "Delitos contra la salud",
+               d_robo_alternas           == 1 ~ "Robo",
+               d_familiar_alternas       == 1 ~ "Violencia familiar",
+               d_lesiones_alternas       == 1 ~ "Lesiones",
+               d_encubrimiento_alternas  == 1 ~ "Encubrimiento",
+               d_extorsion_alternas      == 1 ~ "Extorsión",
+               d_objetos_alternas        == 1 ~ "objetos aptos para agredir",
+               d_secuestro_alternas      == 1 ~ "Secuestro",
+               d_sexuales_alternas       == 1 ~ "Delitos sexuales",
+               d_otros_alternas          == 1 ~ "Otros delitos")) %>% 
         # Renombrar variable de sexo 
         mutate(sexo_indiciada = case_when(sexo_indiciada == "Femenino" ~ "Mujeres", 
                sexo_indiciada == "Masculino" ~ "Hombres", 
-               sexo_indiciada == "No especificado" ~ "No especificado" ))
+               sexo_indiciada == "No especificado" ~ "No especificado" )) %>% 
+        # Crear variable de fecha con objeto tipo date 
+        mutate(date_audiencia_alt = paste(year_audiencia_alt, month_audiencia_alt, sep = "-"), 
+                date_audiencia_alt = as.yearmon(date_audiencia_alt))
+
 
 
 # Crear variables binarias para soluciones alternas ("a_" como sufijo de solución alterna)
@@ -643,7 +655,7 @@ df_alternas_vars_wide <- df_alternas_delitos %>%
 # Base final desagregada por personas 
 df_alternas_wide_summed <- df_alternas_vars_wide %>% 
         group_by(id_exp, id_per_acusada, year_audiencia_alt, month_audiencia_alt, 
-                sexo_indiciada, edad_indiciada, materia) %>% 
+                date_audiencia_alt, sexo_indiciada, edad_indiciada, materia) %>% 
         summarise(num_alcaldias  = length(unique(alcaldia)), # Contabilizar alcaldías donde se cometieron delitos 
                 num_consignacion = length(unique(consignacion)), 
                 num_comision     = length(unique(comision)),
@@ -656,17 +668,17 @@ df_alternas_wide_summed <- df_alternas_vars_wide %>%
                 tr_consumado               = sum(tr_consumado), 
                 tr_tentativa               = sum(tr_tentativa),
         # Delitos 
-                d_alternas_homicidio        = sum(d_alternas_homicidio), 
-                d_alternas_secuestro        = sum(d_alternas_secuestro), 
-                d_alternas_sexuales         = sum(d_alternas_sexuales), 
-                d_alternas_salud            = sum(d_alternas_salud), 
-                d_alternas_robo             = sum(d_alternas_robo), 
-                d_alternas_familiar         = sum(d_alternas_familiar), 
-                d_alternas_lesiones         = sum(d_alternas_lesiones), 
-                d_alternas_extorsion        = sum(d_alternas_extorsion), 
-                d_alternas_objetos          = sum(d_alternas_objetos), 
-                d_alternas_encubrimiento    = sum(d_alternas_encubrimiento), 
-                d_alternas_otros            = sum(d_alternas_otros),
+                d_homicidio_alternas        = sum(d_homicidio_alternas), 
+                d_secuestro_alternas        = sum(d_secuestro_alternas), 
+                d_sexuales_alternas         = sum(d_sexuales_alternas), 
+                d_salud_alternas            = sum(d_salud_alternas), 
+                d_robo_alternas             = sum(d_robo_alternas), 
+                d_familiar_alternas         = sum(d_familiar_alternas), 
+                d_lesiones_alternas         = sum(d_lesiones_alternas), 
+                d_extorsion_alternas        = sum(d_extorsion_alternas), 
+                d_objetos_alternas          = sum(d_objetos_alternas), 
+                d_encubrimiento_alternas    = sum(d_encubrimiento_alternas), 
+                d_otros_alternas            = sum(d_otros_alternas),
         # Soluciones alternas 
                 a_reparatorio    = sum(a_reparatorio), 
                 a_perdon         = sum(a_perdon), 
@@ -674,12 +686,12 @@ df_alternas_wide_summed <- df_alternas_vars_wide %>%
                 a_criterio       = sum(a_criterio), 
                 a_sobreseimiento = sum(a_sobreseimiento)) %>% 
         ungroup() %>% 
-        mutate(num_delitos = d_alternas_homicidio + d_alternas_secuestro + 
-                             d_alternas_sexuales  + d_alternas_salud + 
-                             d_alternas_robo      + d_alternas_familiar + 
-                             d_alternas_lesiones  + d_alternas_extorsion + 
-                             d_alternas_objetos   + d_alternas_encubrimiento + 
-                             d_alternas_otros) %>% 
+        mutate(num_delitos = d_homicidio_alternas + d_secuestro_alternas + 
+                             d_sexuales_alternas  + d_salud_alternas + 
+                             d_robo_alternas      + d_familiar_alternas + 
+                             d_lesiones_alternas  + d_extorsion_alternas + 
+                             d_objetos_alternas   + d_encubrimiento_alternas + 
+                             d_otros_alternas) %>% 
         mutate(base_sol_alternas = 1)
 
 # Variables de conteo a indicadores binarios 
@@ -691,17 +703,17 @@ df_alternas_acusados <- df_alternas_wide_summed %>%
                 tr_consumado   = if_else(tr_consumado == 0, 0, 1),
                 tr_tentativa   = if_else(tr_tentativa == 0, 0, 1),
         # Indicadores binarios para delitos 
-                d_alternas_homicidio     = if_else(d_alternas_homicidio == 0, 0, 1), 
-                d_alternas_secuestro     = if_else(d_alternas_secuestro == 0, 0, 1), 
-                d_alternas_sexuales      = if_else(d_alternas_sexuales == 0, 0, 1), 
-                d_alternas_salud         = if_else(d_alternas_salud == 0, 0, 1), 
-                d_alternas_robo          = if_else(d_alternas_robo == 0, 0, 1), 
-                d_alternas_familiar      = if_else(d_alternas_familiar == 0, 0, 1), 
-                d_alternas_lesiones      = if_else(d_alternas_lesiones == 0, 0, 1), 
-                d_alternas_extorsion     = if_else(d_alternas_extorsion == 0, 0, 1), 
-                d_alternas_objetos       = if_else(d_alternas_objetos == 0, 0, 1), 
-                d_alternas_encubrimiento = if_else(d_alternas_encubrimiento == 0, 0, 1), 
-                d_alternas_otros         = if_else(d_alternas_otros == 0, 0, 1)) 
+                d_homicidio_alternas     = if_else(d_homicidio_alternas == 0, 0, 1), 
+                d_secuestro_alternas     = if_else(d_secuestro_alternas == 0, 0, 1), 
+                d_sexuales_alternas      = if_else(d_sexuales_alternas == 0, 0, 1), 
+                d_salud_alternas         = if_else(d_salud_alternas == 0, 0, 1), 
+                d_robo_alternas          = if_else(d_robo_alternas == 0, 0, 1), 
+                d_familiar_alternas      = if_else(d_familiar_alternas == 0, 0, 1), 
+                d_lesiones_alternas      = if_else(d_lesiones_alternas == 0, 0, 1), 
+                d_extorsion_alternas     = if_else(d_extorsion_alternas == 0, 0, 1), 
+                d_objetos_alternas       = if_else(d_objetos_alternas == 0, 0, 1), 
+                d_encubrimiento_alternas = if_else(d_encubrimiento_alternas == 0, 0, 1), 
+                d_otros_alternas         = if_else(d_otros_alternas == 0, 0, 1)) 
 
 
 
@@ -713,29 +725,29 @@ df_cautelares_renombrado1 <- df_cautelares                              %>%
         # Unificar categorías de homicidio y feminicidio en 1 
         mutate(homicidio_1 = as.numeric(str_detect(delito, "Homicidio")), 
                homicidio_2 = as.numeric(str_detect(delito, "Feminicidio")), 
-               d_cautelares_homicidio   = homicidio_1 + homicidio_2)                 %>% 
+               d_homicidio_cautelares   = homicidio_1 + homicidio_2)                 %>% 
         # Unificar categorías para secuestros 
         mutate(secuestro_1 = as.numeric(str_detect(delito, "Secuestro")), 
                secuestro_2 = as.numeric(str_detect(delito, "Privación de la libertad")), 
-                d_cautelares_secuestro   = secuestro_1 + secuestro_2)                 %>% 
+                d_secuestro_cautelares   = secuestro_1 + secuestro_2)                 %>% 
         # Unificar categorías para delitos sexuales
         mutate(sexuales_1  = as.numeric(str_detect(delito, "Abuso sexual")), 
                sexuales_2  = as.numeric(str_detect(delito, "Violacion")), 
                sexuales_3  = as.numeric(str_detect(delito, "Hostigamiento")), 
-                d_cautelares_sexuales    = sexuales_1 + sexuales_2 + sexuales_3)      %>% 
+                d_sexuales_cautelares    = sexuales_1 + sexuales_2 + sexuales_3)      %>% 
         # Crear variables dummies para otros delitos
-        mutate(d_cautelares_salud       = as.numeric(str_detect(delito, "salud")),
-               d_cautelares_robo        = as.numeric(str_detect(delito, "Robo")), 
-               d_cautelares_familiar    = as.numeric(str_detect(delito, "Violencia familiar")), 
-               d_cautelares_lesiones    = as.numeric(str_detect(delito, "Lesiones")),
-               d_cautelares_extorsion   = as.numeric(str_detect(delito, "Extorsion")), 
-               d_cautelares_objetos     = as.numeric(str_detect(delito, "Portación de objetos")), 
-                d_cautelares_encubrimiento = as.numeric(str_detect(delito, "Encubrimiento"))) %>% 
+        mutate(d_salud_cautelares       = as.numeric(str_detect(delito, "salud")),
+               d_robo_cautelares        = as.numeric(str_detect(delito, "Robo")), 
+               d_familiar_cautelares    = as.numeric(str_detect(delito, "Violencia familiar")), 
+               d_lesiones_cautelares    = as.numeric(str_detect(delito, "Lesiones")),
+               d_extorsion_cautelares   = as.numeric(str_detect(delito, "Extorsion")), 
+               d_objetos_cautelares     = as.numeric(str_detect(delito, "objetos")), 
+                d_encubrimiento_cautelares = as.numeric(str_detect(delito, "Encubrimiento"))) %>% 
         # Crear categoría para el resto de los delitos 
-        mutate(d_cautelares_otros = ifelse(d_cautelares_homicidio != 1 & d_cautelares_salud != 1    & d_cautelares_robo != 1 & 
-                              d_cautelares_familiar  != 1 & d_cautelares_lesiones != 1 & d_cautelares_encubrimiento != 1 &
-                              d_cautelares_extorsion != 1 & d_cautelares_objetos  != 1 & d_cautelares_secuestro != 1 & 
-                        d_cautelares_sexuales  != 1, 1, 0)) %>% 
+        mutate(d_otros_cautelares = ifelse(d_homicidio_cautelares != 1 & d_salud_cautelares != 1    & d_robo_cautelares != 1 & 
+                              d_familiar_cautelares  != 1 & d_lesiones_cautelares != 1 & d_encubrimiento_cautelares != 1 &
+                              d_extorsion_cautelares != 1 & d_objetos_cautelares  != 1 & d_secuestro_cautelares != 1 & 
+                        d_sexuales_cautelares  != 1, 1, 0)) %>% 
         # Retirar variables innecesarias 
         dplyr::select(-c(homicidio_1, homicidio_2, secuestro_1, secuestro_2,
                                         sexuales_1, sexuales_2, sexuales_3))         
@@ -760,20 +772,24 @@ df_cautelares_renombrado2 <- df_cautelares_renombrado1 %>%
 
 # Crear nueva variable con nombres cortos de los delitos                        
 df_cautelares_delitos <- df_cautelares_renombrado2 %>% 
-        mutate(delitos_cortos = case_when(d_cautelares_homicidio == 1 ~ "Homicidio",
-               d_cautelares_salud     == 1 ~ "Delitos contra la salud",
-               d_cautelares_robo      == 1 ~ "Robo",
-               d_cautelares_familiar  == 1 ~ "Violencia familiar",
-               d_cautelares_lesiones  == 1 ~ "Lesiones",
-               d_cautelares_encubrimiento == 1 ~ "Encubrimiento",
-               d_cautelares_extorsion == 1 ~ "Extorsión",
-               d_cautelares_objetos   == 1 ~ "Portación de objetos aptos para agredir",
-               d_cautelares_secuestro == 1 ~ "Secuestro",
-               d_cautelares_sexuales  == 1 ~ "Delitos sexuales",
-                d_cautelares_otros     == 1 ~ "Otros delitos"))  %>% 
+        mutate(delitos_cortos = case_when(d_homicidio_cautelares == 1 ~ "Homicidio",
+               d_salud_cautelares     == 1 ~ "Delitos contra la salud",
+               d_robo_cautelares      == 1 ~ "Robo",
+               d_familiar_cautelares  == 1 ~ "Violencia familiar",
+               d_lesiones_cautelares  == 1 ~ "Lesiones",
+               d_encubrimiento_cautelares == 1 ~ "Encubrimiento",
+               d_extorsion_cautelares == 1 ~ "Extorsión",
+               d_objetos_cautelares   == 1 ~ "objetos aptos para agredir",
+               d_secuestro_cautelares == 1 ~ "Secuestro",
+               d_sexuales_cautelares  == 1 ~ "Delitos sexuales",
+                d_otros_cautelares     == 1 ~ "Otros delitos"))  %>% 
         mutate(sexo_vinculada = case_when(sexo_vinculada == "Femenino" ~ "Mujeres", 
                sexo_vinculada == "Masculino" ~ "Hombres", 
-               sexo_vinculada == "No especificado" ~ "No especificado"))
+               sexo_vinculada == "No especificado" ~ "No especificado")) %>% 
+        # Crear variable de fecha con objeto tipo date 
+        mutate(date_audiencia_caut  = paste(year_audiencia_caut, month_audiencia_caut, sep = "-"), 
+                date_audiencia_caut = as.yearmon(date_audiencia_caut))
+
 
 # Crear variables binarias para medidas cautelares ("m_" como sufijo de medida cautelar)
 df_cautelares_vars_wide <- df_cautelares_delitos %>% 
@@ -804,7 +820,7 @@ df_cautelares_vars_wide <- df_cautelares_delitos %>%
 # Sintetizar información a nivel persona 
 df_cautelares_wide_summed <- df_cautelares_vars_wide %>% 
         group_by(id_exp, id_per_acusada, year_audiencia_caut, month_audiencia_caut, 
-                sexo_vinculada, edad_vinculada, materia) %>% 
+                date_audiencia_caut, sexo_vinculada, edad_vinculada, materia) %>% 
         summarise(num_alcaldias   = length(unique(alcaldia)), # Contabilizar alcaldías donde se cometieron delitos 
                 num_consignacion  = length(unique(consignacion)), 
                 num_comision      = length(unique(comision)),
@@ -817,17 +833,17 @@ df_cautelares_wide_summed <- df_cautelares_vars_wide %>%
                 tr_consumado               = sum(tr_consumado), 
                 tr_tentativa               = sum(tr_tentativa),
         # Delitos  
-                d_cautelares_homicidio         = sum(d_cautelares_homicidio), 
-                d_cautelares_secuestro         = sum(d_cautelares_secuestro), 
-                d_cautelares_sexuales          = sum(d_cautelares_sexuales), 
-                d_cautelares_salud             = sum(d_cautelares_salud), 
-                d_cautelares_robo              = sum(d_cautelares_robo), 
-                d_cautelares_familiar          = sum(d_cautelares_familiar), 
-                d_cautelares_lesiones          = sum(d_cautelares_lesiones), 
-                d_cautelares_extorsion         = sum(d_cautelares_extorsion), 
-                d_cautelares_objetos           = sum(d_cautelares_objetos), 
-                d_cautelares_encubrimiento     = sum(d_cautelares_encubrimiento), 
-                d_cautelares_otros             = sum(d_cautelares_otros),
+                d_homicidio_cautelares         = sum(d_homicidio_cautelares), 
+                d_secuestro_cautelares         = sum(d_secuestro_cautelares), 
+                d_sexuales_cautelares          = sum(d_sexuales_cautelares), 
+                d_salud_cautelares             = sum(d_salud_cautelares), 
+                d_robo_cautelares              = sum(d_robo_cautelares), 
+                d_familiar_cautelares          = sum(d_familiar_cautelares), 
+                d_lesiones_cautelares          = sum(d_lesiones_cautelares), 
+                d_extorsion_cautelares         = sum(d_extorsion_cautelares), 
+                d_objetos_cautelares           = sum(d_objetos_cautelares), 
+                d_encubrimiento_cautelares     = sum(d_encubrimiento_cautelares), 
+                d_otros_cautelares             = sum(d_otros_cautelares),
         # Medidas cautelares
                 m_embargo         = sum(m_embargo), 
                 m_resguardo       = sum(m_resguardo), 
@@ -843,12 +859,12 @@ df_cautelares_wide_summed <- df_cautelares_vars_wide %>%
                 m_suspension_laboral = sum(m_suspension_laboral), 
                 m_prision_preventiva = sum(m_prision_preventiva))   %>% 
         ungroup() %>% 
-        mutate(num_delitos = d_cautelares_homicidio + d_cautelares_secuestro + 
-                        d_cautelares_sexuales + d_cautelares_salud + 
-                        d_cautelares_robo +
-                        d_cautelares_familiar + d_cautelares_lesiones + 
-                        d_cautelares_extorsion + d_cautelares_objetos + 
-                        d_cautelares_encubrimiento + d_cautelares_otros) %>% 
+        mutate(num_delitos = d_homicidio_cautelares + d_secuestro_cautelares + 
+                        d_sexuales_cautelares + d_salud_cautelares + 
+                        d_robo_cautelares +
+                        d_familiar_cautelares + d_lesiones_cautelares + 
+                        d_extorsion_cautelares + d_objetos_cautelares + 
+                        d_encubrimiento_cautelares + d_otros_cautelares) %>% 
         mutate(num_medidas_cautelares = m_embargo + m_resguardo + m_vigilancia +
                         m_localizador + m_garantia_econ + m_inmov_cuentas +
                         m_presentacion + m_prohib_lugares + m_prohib_comunica +
@@ -866,17 +882,17 @@ df_cautelares_acusados <- df_cautelares_wide_summed %>%
                 tr_consumado   = if_else(tr_consumado == 0, 0, 1),
                 tr_tentativa   = if_else(tr_tentativa == 0, 0, 1),
                 # Indicadores binarios para delitos 
-                d_cautelares_homicidio     = if_else(d_cautelares_homicidio == 0, 0, 1), 
-                d_cautelares_secuestro     = if_else(d_cautelares_secuestro == 0, 0, 1), 
-                d_cautelares_sexuales      = if_else(d_cautelares_sexuales == 0, 0, 1), 
-                d_cautelares_salud         = if_else(d_cautelares_salud == 0, 0, 1), 
-                d_cautelares_robo          = if_else(d_cautelares_robo == 0, 0, 1), 
-                d_cautelares_familiar      = if_else(d_cautelares_familiar == 0, 0, 1), 
-                d_cautelares_lesiones      = if_else(d_cautelares_lesiones == 0, 0, 1), 
-                d_cautelares_extorsion     = if_else(d_cautelares_extorsion == 0, 0, 1), 
-                d_cautelares_objetos       = if_else(d_cautelares_objetos == 0, 0, 1), 
-                d_cautelares_encubrimiento = if_else(d_cautelares_encubrimiento == 0, 0, 1), 
-                d_cautelares_otros         = if_else(d_cautelares_otros == 0, 0, 1)) 
+                d_homicidio_cautelares     = if_else(d_homicidio_cautelares == 0, 0, 1), 
+                d_secuestro_cautelares     = if_else(d_secuestro_cautelares == 0, 0, 1), 
+                d_sexuales_cautelares      = if_else(d_sexuales_cautelares == 0, 0, 1), 
+                d_salud_cautelares         = if_else(d_salud_cautelares == 0, 0, 1), 
+                d_robo_cautelares          = if_else(d_robo_cautelares == 0, 0, 1), 
+                d_familiar_cautelares      = if_else(d_familiar_cautelares == 0, 0, 1), 
+                d_lesiones_cautelares      = if_else(d_lesiones_cautelares == 0, 0, 1), 
+                d_extorsion_cautelares     = if_else(d_extorsion_cautelares == 0, 0, 1), 
+                d_objetos_cautelares       = if_else(d_objetos_cautelares == 0, 0, 1), 
+                d_encubrimiento_cautelares = if_else(d_encubrimiento_cautelares == 0, 0, 1), 
+                d_otros_cautelares         = if_else(d_otros_cautelares == 0, 0, 1)) 
 
 
 
@@ -886,35 +902,35 @@ df_sentencias_renombrado1 <- df_sentencias %>%
         # Unificar categorías de homicidio y feminicidio en 1 
         mutate(homicidio_1 = as.numeric(str_detect(delito, "Homicidio")), 
                homicidio_2 = as.numeric(str_detect(delito, "Feminicidio")), 
-               d_sentencia_homicidio   = homicidio_1 + homicidio_2)                 %>% 
+               d_homicidio_sentencia   = homicidio_1 + homicidio_2)                 %>% 
         # Unificar categorías para secuestros 
         mutate(secuestro_1 = as.numeric(str_detect(delito, "Secuestro")), 
                secuestro_2 = as.numeric(str_detect(delito, "Privación de la libertad")), 
-               d_sentencia_secuestro   = secuestro_1 + secuestro_2)                 %>% 
+               d_secuestro_sentencia   = secuestro_1 + secuestro_2)                 %>% 
         # Unificar categorías para delitos sexuales
         mutate(sexuales_1  = as.numeric(str_detect(delito, "Abuso sexual")), 
                sexuales_2  = as.numeric(str_detect(delito, "Violacion")), 
                sexuales_3  = as.numeric(str_detect(delito, "Hostigamiento")), 
-               d_sentencia_sexuales    = sexuales_1 + sexuales_2 + sexuales_3)      %>% 
+               d_sexuales_sentencia    = sexuales_1 + sexuales_2 + sexuales_3)      %>% 
         # Crear variables dummies para otros delitos
-        mutate(d_sentencia_salud       = as.numeric(str_detect(delito, "salud")),
-               d_sentencia_robo        = as.numeric(str_detect(delito, "Robo")), 
-               d_sentencia_familiar    = as.numeric(str_detect(delito, "Violencia familiar")), 
-               d_sentencia_lesiones    = as.numeric(str_detect(delito, "Lesiones")),
-               d_sentencia_extorsion   = as.numeric(str_detect(delito, "Extorsion")), 
-               d_sentencia_objetos     = as.numeric(str_detect(delito, "Portación de objetos")), 
-               d_sentencia_encubrimiento = as.numeric(str_detect(delito, "Encubrimiento"))) %>% 
+        mutate(d_salud_sentencia       = as.numeric(str_detect(delito, "salud")),
+               d_robo_sentencia        = as.numeric(str_detect(delito, "Robo")), 
+               d_familiar_sentencia    = as.numeric(str_detect(delito, "Violencia familiar")), 
+               d_lesiones_sentencia    = as.numeric(str_detect(delito, "Lesiones")),
+               d_extorsion_sentencia   = as.numeric(str_detect(delito, "Extorsion")), 
+               d_objetos_sentencia     = as.numeric(str_detect(delito, "objetos")), 
+               d_encubrimiento_sentencia = as.numeric(str_detect(delito, "Encubrimiento"))) %>% 
         # Crear categoría para el resto de los delitos 
-        mutate(d_sentencia_otros = ifelse(d_sentencia_homicidio != 1 & 
-                                d_sentencia_salud != 1    & 
-                                d_sentencia_robo != 1 & 
-                                d_sentencia_familiar  != 1 & 
-                                d_sentencia_lesiones != 1 & 
-                                d_sentencia_encubrimiento != 1 &
-                                d_sentencia_extorsion != 1 & 
-                                d_sentencia_objetos  != 1 & 
-                                d_sentencia_secuestro != 1 & 
-                                d_sentencia_sexuales  != 1, 1, 0)) %>% 
+        mutate(d_otros_sentencia = ifelse(d_homicidio_sentencia != 1 & 
+                                d_salud_sentencia != 1    & 
+                                d_robo_sentencia != 1 & 
+                                d_familiar_sentencia  != 1 & 
+                                d_lesiones_sentencia != 1 & 
+                                d_encubrimiento_sentencia != 1 &
+                                d_extorsion_sentencia != 1 & 
+                                d_objetos_sentencia  != 1 & 
+                                d_homicidio_sentencia != 1 & 
+                                d_sexuales_sentencia  != 1, 1, 0)) %>% 
         # Retirar variables innecesarias 
         dplyr::select(-c(homicidio_1, homicidio_2, secuestro_1, secuestro_2,
                 sexuales_1, sexuales_2, sexuales_3)) 
@@ -927,17 +943,21 @@ df_sentencias_renombrado2 <- df_sentencias_renombrado1 %>%
 
 # Crear nueva variable con nombres cortos de los delitos                        
 df_sentencias_delitos <- df_sentencias_renombrado2 %>% 
-        mutate(delitos_cortos = case_when(d_sentencia_homicidio == 1 ~ "Homicidio",
-                d_sentencia_salud     == 1 ~ "Delitos contra la salud",
-                d_sentencia_robo      == 1 ~ "Robo",
-                d_sentencia_familiar  == 1 ~ "Violencia familiar",
-                d_sentencia_lesiones  == 1 ~ "Lesiones",
-                d_sentencia_encubrimiento == 1 ~ "Encubrimiento",
-                d_sentencia_extorsion == 1 ~ "Extorsión",
-                d_sentencia_objetos   == 1 ~ "Portación de objetos aptos para agredir",
-                d_sentencia_secuestro == 1 ~ "Secuestro",
-                d_sentencia_sexuales  == 1 ~ "Delitos sexuales",
-                d_sentencia_otros     == 1 ~ "Otros delitos")) 
+        mutate(delitos_cortos = case_when(d_homicidio_sentencia == 1 ~ "Homicidio",
+                d_salud_sentencia     == 1 ~ "Delitos contra la salud",
+                d_robo_sentencia      == 1 ~ "Robo",
+                d_familiar_sentencia  == 1 ~ "Violencia familiar",
+                d_lesiones_sentencia  == 1 ~ "Lesiones",
+                d_encubrimiento_sentencia == 1 ~ "Encubrimiento",
+                d_extorsion_sentencia == 1 ~ "Extorsión",
+                d_objetos_sentencia   == 1 ~ "objetos aptos para agredir",
+                d_secuestro_sentencia == 1 ~ "Secuestro",
+                d_sexuales_sentencia  == 1 ~ "Delitos sexuales",
+                d_otros_sentencia     == 1 ~ "Otros delitos")) %>% 
+        # Crear variable de fecha con objeto tipo date 
+        mutate(date_sentencia = paste(year_sentencia, month_sentencia, sep = "-"), 
+                date_sentencia = as.yearmon(date_sentencia))
+
 
 
 # Crear variables binarias para sentencias ("sentencia_" como sufijo)
@@ -958,7 +978,8 @@ df_sentencias_vars_wide <- df_sentencias_delitos %>%
 # Base final desagregada por personas 
 df_sentencias_wide_summed <- df_sentencias_vars_wide %>% 
         group_by(id_exp, id_per_acusada, year_sentencia, month_sentencia, 
-                sexo_sentenciada, edad_sentenciada, materia, years_sentencia, months_sentencia) %>% 
+                date_sentencia, sexo_sentenciada, edad_sentenciada, 
+                materia, years_sentencia, months_sentencia) %>% 
         summarise(num_alcaldias  = length(unique(alcaldia)), # Contabilizar alcaldías donde se cometieron delitos 
                 num_consignacion = length(unique(consignacion)), 
                 num_comision     = length(unique(comision)),
@@ -971,27 +992,27 @@ df_sentencias_wide_summed <- df_sentencias_vars_wide %>%
                 tr_consumado               = sum(tr_consumado), 
                 tr_tentativa               = sum(tr_tentativa),
         # Delitos 
-                d_sentencia_homicidio        = sum(d_sentencia_homicidio), 
-                d_sentencia_secuestro        = sum(d_sentencia_secuestro), 
-                d_sentencia_sexuales         = sum(d_sentencia_sexuales), 
-                d_sentencia_salud            = sum(d_sentencia_salud), 
-                d_sentencia_robo             = sum(d_sentencia_robo), 
-                d_sentencia_familiar         = sum(d_sentencia_familiar), 
-                d_sentencia_lesiones         = sum(d_sentencia_lesiones), 
-                d_sentencia_extorsion        = sum(d_sentencia_extorsion), 
-                d_sentencia_objetos          = sum(d_sentencia_objetos), 
-                d_sentencia_encubrimiento    = sum(d_sentencia_encubrimiento), 
-                d_sentencia_otros            = sum(d_sentencia_otros),
+                d_homicidio_sentencia        = sum(d_homicidio_sentencia), 
+                d_secuestro_sentencia        = sum(d_secuestro_sentencia), 
+                d_sexuales_sentencia         = sum(d_sexuales_sentencia), 
+                d_salud_sentencia            = sum(d_salud_sentencia), 
+                d_robo_sentencia             = sum(d_robo_sentencia), 
+                d_familiar_sentencia         = sum(d_familiar_sentencia), 
+                d_lesiones_sentencia         = sum(d_lesiones_sentencia), 
+                d_extorsion_sentencia        = sum(d_extorsion_sentencia), 
+                d_objetos_sentencia          = sum(d_objetos_sentencia), 
+                d_encubrimiento_sentencia    = sum(d_encubrimiento_sentencia), 
+                d_otros_sentencia            = sum(d_otros_sentencia),
         # Sentencias
                 sentencia_absolutoria  = sum(sentencia_absolutoria), 
                 sentencia_condenatoria = sum(sentencia_condenatoria)) %>% 
         ungroup() %>% 
-        mutate(num_delitos = d_sentencia_homicidio + d_sentencia_secuestro + 
-                        d_sentencia_sexuales + d_sentencia_salud + 
-                        d_sentencia_robo + d_sentencia_familiar + 
-                        d_sentencia_lesiones + d_sentencia_extorsion + 
-                        d_sentencia_objetos + 
-                        d_sentencia_encubrimiento + d_sentencia_otros) %>% 
+        mutate(num_delitos = d_homicidio_sentencia + d_homicidio_sentencia + 
+                        d_sexuales_sentencia + d_salud_sentencia + 
+                        d_robo_sentencia + d_familiar_sentencia + 
+                        d_lesiones_sentencia + d_extorsion_sentencia + 
+                        d_objetos_sentencia + 
+                        d_encubrimiento_sentencia + d_otros_sentencia) %>% 
         mutate(base_sentencias = 1)
 
 # Base final desagregada por personas 
@@ -1004,20 +1025,19 @@ df_sentencias_acusados <- df_sentencias_wide_summed %>%
                 tr_consumado   = if_else(tr_consumado == 0, 0, 1),
                 tr_tentativa   = if_else(tr_tentativa == 0, 0, 1),
                 # Indicadores binarios para delitos 
-                d_sentencia_homicidio     = if_else(d_sentencia_homicidio == 0, 0, 1), 
-                d_sentencia_secuestro     = if_else(d_sentencia_secuestro == 0, 0, 1), 
-                d_sentencia_sexuales      = if_else(d_sentencia_sexuales == 0, 0, 1), 
-                d_sentencia_salud         = if_else(d_sentencia_salud == 0, 0, 1), 
-                d_sentencia_robo          = if_else(d_sentencia_robo == 0, 0, 1), 
-                d_sentencia_familiar      = if_else(d_sentencia_familiar == 0, 0, 1), 
-                d_sentencia_lesiones      = if_else(d_sentencia_lesiones == 0, 0, 1), 
-                d_sentencia_extorsion     = if_else(d_sentencia_extorsion == 0, 0, 1), 
-                d_sentencia_objetos       = if_else(d_sentencia_objetos == 0, 0, 1), 
-                d_sentencia_encubrimiento = if_else(d_sentencia_encubrimiento == 0, 0, 1), 
-                d_sentencia_otros         = if_else(d_sentencia_otros == 0, 0, 1)) 
+                d_homicidio_sentencia     = if_else(d_homicidio_sentencia == 0, 0, 1), 
+                d_homicidio_sentencia     = if_else(d_homicidio_sentencia == 0, 0, 1), 
+                d_sexuales_sentencia      = if_else(d_sexuales_sentencia == 0, 0, 1), 
+                d_salud_sentencia         = if_else(d_salud_sentencia == 0, 0, 1), 
+                d_robo_sentencia          = if_else(d_robo_sentencia == 0, 0, 1), 
+                d_familiar_sentencia      = if_else(d_familiar_sentencia == 0, 0, 1), 
+                d_lesiones_sentencia      = if_else(d_lesiones_sentencia == 0, 0, 1), 
+                d_extorsion_sentencia     = if_else(d_extorsion_sentencia == 0, 0, 1), 
+                d_objetos_sentencia       = if_else(d_objetos_sentencia == 0, 0, 1), 
+                d_encubrimiento_sentencia = if_else(d_encubrimiento_sentencia == 0, 0, 1), 
+                d_otros_sentencia         = if_else(d_otros_sentencia == 0, 0, 1)) 
 
 beepr::beep(5)
-
 
 
 # 3. Controles de calidad ------------------------------------------------------
@@ -1098,11 +1118,11 @@ df_medidas_cautelares_nivel_delito   <- df_cautelares_delitos
 df_sentencias_nivel_delito           <- df_sentencias_delitos
 
 # Guardar bases en formato .RData
-save(df_asuntos_ingresados_nivel_delito, file = paste0(out, "df_asuntos_ingresados_nivel_delito.RData"))
-save(df_situacion_juridica_nivel_delito, file = paste0(out, "df_situacion_juridica_nivel_delito.RData"))
+save(df_asuntos_ingresados_nivel_delito,  file = paste0(out, "df_asuntos_ingresados_nivel_delito.RData"))
+save(df_situacion_juridica_nivel_delito,  file = paste0(out, "df_situacion_juridica_nivel_delito.RData"))
 save(df_soluciones_alternas_nivel_delito, file = paste0(out, "df_soluciones_alternas_nivel_delito.RData"))
-save(df_medidas_cautelares_nivel_delito, file = paste0(out, "df_medidas_cautelares_nivel_delito.RData"))
-save(df_sentencias_nivel_delito, file = paste0(out, "df_sentencias_nivel_delito.RData"))
+save(df_medidas_cautelares_nivel_delito,  file = paste0(out, "df_medidas_cautelares_nivel_delito.RData"))
+save(df_sentencias_nivel_delito,          file = paste0(out, "df_sentencias_nivel_delito.RData"))
 
 
 
@@ -1112,25 +1132,25 @@ df_asuntos_ingresados_nivel_acusado  <- df_asuntos_acusados
 df_situacion_juridica_nivel_acusado  <- df_sitjurid_acusados
 df_soluciones_alternas_nivel_acusado <- df_alternas_acusados
 df_medidas_cautelares_nivel_acusado  <- df_cautelares_acusados
-df_sentencias_nivel_acusado <- df_sentencias_acusados
+df_sentencias_nivel_acusado          <- df_sentencias_acusados
 
 # Guardar en formato .RDAta
-save(df_asuntos_ingresados_nivel_acusado, file  = paste0(out, "df_asuntos_ingresados_nivel_acusado.RData"))
-save(df_situacion_juridica_nivel_acusado, file  = paste0(out, "df_situacion_juridica_nivel_acusado.RData"))
+save(df_asuntos_ingresados_nivel_acusado,  file = paste0(out, "df_asuntos_ingresados_nivel_acusado.RData"))
+save(df_situacion_juridica_nivel_acusado,  file = paste0(out, "df_situacion_juridica_nivel_acusado.RData"))
 save(df_soluciones_alternas_nivel_acusado, file = paste0(out, "df_soluciones_alternas_nivel_acusado.RData"))
-save(df_medidas_cautelares_nivel_acusado, file  = paste0(out, "df_medidas_cautelares_nivel_acusado.RData"))
-save(df_sentencias_nivel_acusado, file = paste0(out, "df_sentencias_nivel_acusado.RData"))
+save(df_medidas_cautelares_nivel_acusado,  file = paste0(out, "df_medidas_cautelares_nivel_acusado.RData"))
+save(df_sentencias_nivel_acusado,          file = paste0(out, "df_sentencias_nivel_acusado.RData"))
 
 
 # Bases de víctimas 
 df_personas_agredidas_nivel_persona    <- df_personas
 df_personas_agredidas_nivel_expediente <- df_personas_expediente
 
-save(df_personas_agredidas_nivel_persona, file     = paste0(out, "df_personas_agredidas_nivel_persona.RData"))
+save(df_personas_agredidas_nivel_persona,    file = paste0(out, "df_personas_agredidas_nivel_persona.RData"))
 save(df_personas_agredidas_nivel_expediente, file = paste0(out, "df_personas_agredidas_nivel_expediente.RData"))
 
 
 beepr::beep(5)
- 
+  
   
 # Fin del código #
