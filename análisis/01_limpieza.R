@@ -1,11 +1,12 @@
 #------------------------------------------------------------------------------#
-# Objetivo:                     Procesar datos de la PJCDMX para generar bases 
-#                               a nivel persona y a nivel delito 
+# Proyecto:                   TRIBUNAL SUPERIOR DE JUSTICIA DE CIUDAD DE MÉXICO
+# Objetivo:                   Procesar datos de la PJCDMX para generar bases 
+#                             a nivel persona y a nivel delito 
 #
-# Encargada:                    Regina Isabel Medina Rosales
-# Correo:                       rmedina@intersecta.org
-# Fecha de creación:            14 de enero de 2021
-# Última actualización:         04 de febrero de 2021
+# Encargada:                  Regina Isabel Medina Rosales
+# Correo:                     rmedina@intersecta.org
+# Fecha de creación:          14 de enero   de 2021
+# Última actualización:       09 de febrero de 2021
 #------------------------------------------------------------------------------#
 
 # 0. Configuración inicial -----------------------------------------------------
@@ -400,7 +401,7 @@ df_personas_vars_wide <- df_personas %>%
                r_parent_sang = as.numeric(str_detect(relacion, "Parentesco por consanguinidad")),
                r_tutor       = as.numeric(str_detect(relacion, "Tutor o curador")))
 
-df_personas_expediente <- df_personas_vars_wide %>% 
+df_personas_expediente_summed <- df_personas_vars_wide %>% 
         group_by(id_exp) %>% 
         summarise(v_total     = n(), 
                 # Número de víctimas desagregadas por sexo
@@ -420,6 +421,23 @@ df_personas_expediente <- df_personas_vars_wide %>%
                 r_parent_sang = sum(r_parent_sang), 
                 r_tutor       = sum(r_tutor)) 
                 
+# Indicadores binarios para los tipos de relación 
+df_personas_expediente <- df_personas_expediente_summed %>% 
+        mutate(r_academica    = if_else(r_academica   == 0, 0, 1), 
+                r_autoridad   = if_else(r_autoridad   == 0, 0, 1), 
+                r_concubinato = if_else(r_concubinato == 0, 0, 1), 
+                r_empleo      = if_else(r_empleo      == 0, 0, 1), 
+                r_ninguna     = if_else(r_ninguna     == 0, 0, 1), 
+                r_no_especif  = if_else(r_no_especif  == 0, 0, 1), 
+                r_no_identif  = if_else(r_no_identif  == 0, 0, 1), 
+                r_otro_tipo   = if_else(r_otro_tipo   == 0, 0, 1), 
+                r_parent_afin = if_else(r_parent_afin == 0, 0, 1), 
+                r_parent_sang = if_else(r_parent_sang == 0, 0, 1), 
+                r_tutor       = if_else(r_tutor       == 0, 0, 1))
+
+
+
+
 # El problema de que esté desagregada por víctima y luego por expediente es que 
 # si hago la unión con las personas agresoras se va a repetir cada vez en todos
 # los casos en los que haya más de una persona agresora. 
@@ -571,7 +589,16 @@ df_sitjurid_acusados <- df_sitjurid_wide_summed %>%
                 d_extorsion_sitjurid     = if_else(d_extorsion_sitjurid == 0, 0, 1), 
                 d_objetos_sitjurid       = if_else(d_objetos_sitjurid == 0, 0, 1), 
                 d_encubrimiento_sitjurid = if_else(d_encubrimiento_sitjurid == 0, 0, 1), 
-                d_otros_sitjurid         = if_else(d_otros_sitjurid == 0, 0, 1)) 
+                d_otros_sitjurid         = if_else(d_otros_sitjurid == 0, 0, 1), 
+                # Indicadores binarios para delitos 
+                s_formal_prision         = if_else(s_formal_prision == 0, 0, 1), 
+                s_libertad_falta_elementos = if_else(s_libertad_falta_elementos == 0, 0, 1), 
+                s_no_especificado        = if_else(s_no_especificado == 0, 0, 1), 
+                s_no_vinculado           = if_else(s_no_vinculado == 0, 0, 1), 
+                s_proceso_especial       = if_else(s_proceso_especial == 0, 0, 1), 
+                s_sujecion_en_libertad   = if_else(s_sujecion_en_libertad == 0, 0, 1), 
+                s_vinculado_proceso      = if_else(s_vinculado_proceso == 0, 0, 1))
+        
 
 
 # 2.4.4 Soluciones alternas -------------------------------------------------------
@@ -713,7 +740,13 @@ df_alternas_acusados <- df_alternas_wide_summed %>%
                 d_extorsion_alternas     = if_else(d_extorsion_alternas == 0, 0, 1), 
                 d_objetos_alternas       = if_else(d_objetos_alternas == 0, 0, 1), 
                 d_encubrimiento_alternas = if_else(d_encubrimiento_alternas == 0, 0, 1), 
-                d_otros_alternas         = if_else(d_otros_alternas == 0, 0, 1)) 
+                d_otros_alternas         = if_else(d_otros_alternas == 0, 0, 1), 
+        # Indicadores binarios para soluciones alternas 
+                a_reparatorio            = if_else(a_reparatorio == 0, 0, 1), 
+                a_perdon                 = if_else(a_perdon == 0, 0, 1), 
+                a_suspension             = if_else(a_suspension == 0, 0, 1), 
+                a_criterio               = if_else(a_criterio == 0, 0, 1), 
+                a_sobreseimiento         = if_else(a_sobreseimiento == 0, 0, 1))
 
 
 
@@ -875,12 +908,12 @@ df_cautelares_wide_summed <- df_cautelares_vars_wide %>%
 # Base final desagregada por personas 
 # Variables de conteo a indicadores binarios 
 df_cautelares_acusados <- df_cautelares_wide_summed %>% 
-        mutate(c_con_detenido  = if_else(c_con_detenido == 0, 0, 1),
-                c_sin_detenido = if_else(c_sin_detenido == 0, 0, 1),
-                c_culposo      = if_else(c_culposo == 0, 0, 1),
-                c_doloso       = if_else(c_doloso == 0, 0, 1),
-                tr_consumado   = if_else(tr_consumado == 0, 0, 1),
-                tr_tentativa   = if_else(tr_tentativa == 0, 0, 1),
+        mutate(c_con_detenido              = if_else(c_con_detenido == 0, 0, 1),
+                c_sin_detenido             = if_else(c_sin_detenido == 0, 0, 1),
+                c_culposo                  = if_else(c_culposo == 0, 0, 1),
+                c_doloso                   = if_else(c_doloso == 0, 0, 1),
+                tr_consumado               = if_else(tr_consumado == 0, 0, 1),
+                tr_tentativa               = if_else(tr_tentativa == 0, 0, 1),
                 # Indicadores binarios para delitos 
                 d_homicidio_cautelares     = if_else(d_homicidio_cautelares == 0, 0, 1), 
                 d_secuestro_cautelares     = if_else(d_secuestro_cautelares == 0, 0, 1), 
@@ -892,7 +925,21 @@ df_cautelares_acusados <- df_cautelares_wide_summed %>%
                 d_extorsion_cautelares     = if_else(d_extorsion_cautelares == 0, 0, 1), 
                 d_objetos_cautelares       = if_else(d_objetos_cautelares == 0, 0, 1), 
                 d_encubrimiento_cautelares = if_else(d_encubrimiento_cautelares == 0, 0, 1), 
-                d_otros_cautelares         = if_else(d_otros_cautelares == 0, 0, 1)) 
+                d_otros_cautelares         = if_else(d_otros_cautelares == 0, 0, 1), 
+                # Indicadores binarios para medidas cautelares 
+                m_embargo                  = if_else(m_embargo == 0, 0, 1), 
+                m_resguardo                = if_else(m_resguardo == 0, 0, 1), 
+                m_vigilancia               = if_else(m_vigilancia == 0, 0, 1), 
+                m_localizador              = if_else(m_localizador == 0, 0, 1), 
+                m_garantia_econ            = if_else(m_garantia_econ == 0, 0, 1), 
+                m_inmov_cuentas            = if_else(m_inmov_cuentas == 0, 0, 1), 
+                m_presentacion             = if_else(m_presentacion == 0, 0, 1), 
+                m_prohib_lugares           = if_else(m_prohib_lugares == 0, 0, 1), 
+                m_prohib_comunica          = if_else(m_prohib_comunica == 0, 0, 1), 
+                m_prohib_salir             = if_else(m_prohib_salir == 0, 0, 1), 
+                m_separa_domicilio         = if_else(m_separa_domicilio == 0, 0, 1), 
+                m_suspension_laboral       = if_else(m_suspension_laboral == 0, 0, 1), 
+                m_prision_preventiva       = if_else(m_prision_preventiva == 0, 0, 1)) 
 
 
 
@@ -1026,7 +1073,7 @@ df_sentencias_acusados <- df_sentencias_wide_summed %>%
                 tr_tentativa   = if_else(tr_tentativa == 0, 0, 1),
                 # Indicadores binarios para delitos 
                 d_homicidio_sentencia     = if_else(d_homicidio_sentencia == 0, 0, 1), 
-                d_homicidio_sentencia     = if_else(d_homicidio_sentencia == 0, 0, 1), 
+                d_secuestro_sentencia     = if_else(d_secuestro_sentencia == 0, 0, 1), 
                 d_sexuales_sentencia      = if_else(d_sexuales_sentencia == 0, 0, 1), 
                 d_salud_sentencia         = if_else(d_salud_sentencia == 0, 0, 1), 
                 d_robo_sentencia          = if_else(d_robo_sentencia == 0, 0, 1), 
@@ -1035,7 +1082,10 @@ df_sentencias_acusados <- df_sentencias_wide_summed %>%
                 d_extorsion_sentencia     = if_else(d_extorsion_sentencia == 0, 0, 1), 
                 d_objetos_sentencia       = if_else(d_objetos_sentencia == 0, 0, 1), 
                 d_encubrimiento_sentencia = if_else(d_encubrimiento_sentencia == 0, 0, 1), 
-                d_otros_sentencia         = if_else(d_otros_sentencia == 0, 0, 1)) 
+                d_otros_sentencia         = if_else(d_otros_sentencia == 0, 0, 1), 
+                # Indicadores binarios para sentencia 
+                sentencia_absolutoria     = if_else(sentencia_absolutoria == 0, 0, 1), 
+                sentencia_condenatoria    = if_else(sentencia_condenatoria == 0, 0, 1))
 
 beepr::beep(5)
 
